@@ -5,12 +5,12 @@ This roadmap turns the current prototype into a reliable, demonstrable final-yea
 ## Current baseline
 
 - Patient intake, assessment, routing, consent, hospital submission, staff portal, and platform administration are implemented in one Laravel/Inertia application.
-- TypeScript validation, Laravel Pint, PHPStan, and the PHPUnit suite currently pass (80 passed, 22 expected skips).
+- TypeScript validation, Laravel Pint, PHPStan, and the PHPUnit suite currently pass (128 passed, 22 expected skips).
 - Tests force the deterministic assessment driver, while Gemini provider tests retain mocked HTTP coverage.
 - The production frontend build passes twice in a normal Windows process and produces a current Vite manifest. Restricted execution environments still cannot load Vite's Windows native dependencies.
 - The PostgreSQL contract suite passes against the configured local schema. Fresh-database verification remains blocked until the local PostgreSQL role is granted permission to create a disposable database.
 - Eligible but less suitable hospital selections require a deliberate additional confirmation before they are saved.
-- The working folder is not currently a Git repository, so source history and a safe rollback path are absent.
+- The working folder is a local Git repository on `main` with a secret-checked initial snapshot. A remote backup has not been configured yet.
 
 ## Definition of done
 
@@ -169,6 +169,8 @@ Update the documentation to cover:
 
 **Priority:** high  
 **Files:** `.gitignore`, repository metadata
+
+**Status:** Local repository and initial commit completed. Remote backup remains pending until a hosting destination is chosen.
 
 Initialize a Git repository or restore the intended repository connection. Before the first commit, confirm `.env`, `.env.local`, runtime logs, generated assets, and `node_modules` are ignored. Review the staged diff for secrets, private connection strings, real user data, and generated files.
 
