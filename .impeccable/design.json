@@ -1,0 +1,401 @@
+{
+    "schemaVersion": 2,
+    "generatedAt": "2026-10-04T18:24:40.8993651Z",
+    "title": "Design System: MediPath",
+    "extensions": {
+        "colorMeta": {
+            "care-teal": {
+                "role": "primary",
+                "displayName": "Care Teal",
+                "canonical": "#0f766e",
+                "tonalRamp": [
+                    "#134e4a",
+                    "#115e59",
+                    "#0f766e",
+                    "#0d9488",
+                    "#14b8a6",
+                    "#5eead4",
+                    "#99f6e4",
+                    "#f0fdfa"
+                ]
+            },
+            "care-teal-deep": {
+                "role": "primary",
+                "displayName": "Deep Care Teal",
+                "canonical": "#115e59",
+                "tonalRamp": [
+                    "#042f2e",
+                    "#134e4a",
+                    "#115e59",
+                    "#0f766e",
+                    "#0d9488",
+                    "#2dd4bf",
+                    "#99f6e4",
+                    "#f0fdfa"
+                ]
+            },
+            "care-teal-soft": {
+                "role": "primary",
+                "displayName": "Soft Care Teal",
+                "canonical": "#ccfbf1",
+                "tonalRamp": [
+                    "#134e4a",
+                    "#115e59",
+                    "#0f766e",
+                    "#14b8a6",
+                    "#5eead4",
+                    "#99f6e4",
+                    "#ccfbf1",
+                    "#f0fdfa"
+                ]
+            },
+            "clinical-ink": {
+                "role": "neutral",
+                "displayName": "Clinical Ink",
+                "canonical": "#020617",
+                "tonalRamp": [
+                    "#020617",
+                    "#0f172a",
+                    "#1e293b",
+                    "#334155",
+                    "#475569",
+                    "#94a3b8",
+                    "#cbd5e1",
+                    "#f8fafc"
+                ]
+            },
+            "supporting-slate": {
+                "role": "neutral",
+                "displayName": "Supporting Slate",
+                "canonical": "#475569",
+                "tonalRamp": [
+                    "#0f172a",
+                    "#1e293b",
+                    "#334155",
+                    "#475569",
+                    "#64748b",
+                    "#94a3b8",
+                    "#cbd5e1",
+                    "#f1f5f9"
+                ]
+            },
+            "quiet-slate": {
+                "role": "neutral",
+                "displayName": "Quiet Slate",
+                "canonical": "#64748b",
+                "tonalRamp": [
+                    "#0f172a",
+                    "#1e293b",
+                    "#334155",
+                    "#475569",
+                    "#64748b",
+                    "#94a3b8",
+                    "#cbd5e1",
+                    "#f8fafc"
+                ]
+            },
+            "quiet-paper": {
+                "role": "neutral",
+                "displayName": "Quiet Paper",
+                "canonical": "#ffffff",
+                "tonalRamp": [
+                    "#171717",
+                    "#404040",
+                    "#737373",
+                    "#a3a3a3",
+                    "#d4d4d4",
+                    "#e5e5e5",
+                    "#f5f5f5",
+                    "#ffffff"
+                ]
+            },
+            "canvas": {
+                "role": "neutral",
+                "displayName": "Canvas",
+                "canonical": "#f8fafc",
+                "tonalRamp": [
+                    "#0f172a",
+                    "#334155",
+                    "#64748b",
+                    "#94a3b8",
+                    "#cbd5e1",
+                    "#e2e8f0",
+                    "#f1f5f9",
+                    "#f8fafc"
+                ]
+            },
+            "border": {
+                "role": "neutral",
+                "displayName": "Border",
+                "canonical": "hsl(0 0% 92.8%)",
+                "tonalRamp": [
+                    "hsl(0 0% 15%)",
+                    "hsl(0 0% 28%)",
+                    "hsl(0 0% 42%)",
+                    "hsl(0 0% 58%)",
+                    "hsl(0 0% 72%)",
+                    "hsl(0 0% 82%)",
+                    "hsl(0 0% 92.8%)",
+                    "hsl(0 0% 97%)"
+                ]
+            },
+            "destructive": {
+                "role": "primary",
+                "displayName": "Destructive",
+                "canonical": "hsl(0 84.2% 60.2%)",
+                "tonalRamp": [
+                    "hsl(0 72% 20%)",
+                    "hsl(0 74% 28%)",
+                    "hsl(0 78% 38%)",
+                    "hsl(0 82% 48%)",
+                    "hsl(0 84.2% 60.2%)",
+                    "hsl(0 86% 72%)",
+                    "hsl(0 88% 84%)",
+                    "hsl(0 90% 95%)"
+                ]
+            },
+            "warning-surface": {
+                "role": "primary",
+                "displayName": "Warning Surface",
+                "canonical": "#fffbeb",
+                "tonalRamp": [
+                    "#451a03",
+                    "#78350f",
+                    "#92400e",
+                    "#b45309",
+                    "#d97706",
+                    "#fbbf24",
+                    "#fde68a",
+                    "#fffbeb"
+                ]
+            },
+            "warning-ink": {
+                "role": "primary",
+                "displayName": "Warning Ink",
+                "canonical": "#92400e",
+                "tonalRamp": [
+                    "#451a03",
+                    "#78350f",
+                    "#92400e",
+                    "#b45309",
+                    "#d97706",
+                    "#f59e0b",
+                    "#fde68a",
+                    "#fffbeb"
+                ]
+            },
+            "operational-success": {
+                "role": "secondary",
+                "displayName": "Operational Emerald",
+                "canonical": "#10b981",
+                "tonalRamp": [
+                    "#064e3b",
+                    "#065f46",
+                    "#047857",
+                    "#059669",
+                    "#10b981",
+                    "#34d399",
+                    "#a7f3d0",
+                    "#ecfdf5"
+                ]
+            },
+            "operational-success-ink": {
+                "role": "secondary",
+                "displayName": "Operational Emerald Ink",
+                "canonical": "#047857",
+                "tonalRamp": [
+                    "#022c22",
+                    "#064e3b",
+                    "#065f46",
+                    "#047857",
+                    "#059669",
+                    "#10b981",
+                    "#6ee7b7",
+                    "#d1fae5"
+                ]
+            }
+        },
+        "typographyMeta": {
+            "display": {
+                "displayName": "Display",
+                "purpose": "Landing-page statements only."
+            },
+            "headline": {
+                "displayName": "Headline",
+                "purpose": "Page titles and intake-step headings."
+            },
+            "title": {
+                "displayName": "Title",
+                "purpose": "Card titles and compact section headings."
+            },
+            "body": {
+                "displayName": "Body",
+                "purpose": "General reading and form guidance."
+            },
+            "label": {
+                "displayName": "Label",
+                "purpose": "Fields, navigation, buttons, and progress labels."
+            }
+        },
+        "shadows": [
+            {
+                "name": "control",
+                "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+                "purpose": "Minimal definition for outlined controls."
+            },
+            {
+                "name": "panel",
+                "value": "0 1px 3px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.10)",
+                "purpose": "Restrained separation for primary cards and intake panels."
+            },
+            {
+                "name": "overlay",
+                "value": "0 10px 15px -3px rgb(0 0 0 / 0.10), 0 4px 6px -4px rgb(0 0 0 / 0.10)",
+                "purpose": "Dialogs and menus that temporarily sit above the workflow."
+            }
+        ],
+        "motion": [
+            {
+                "name": "ease-standard",
+                "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+                "purpose": "Default easing for control state changes."
+            },
+            {
+                "name": "duration-fast",
+                "value": "150ms",
+                "purpose": "Hover and focus transitions."
+            },
+            {
+                "name": "duration-overlay",
+                "value": "200ms",
+                "purpose": "Dialogs and short overlay transitions."
+            }
+        ],
+        "breakpoints": [
+            { "name": "sm", "value": "640px" },
+            { "name": "md", "value": "768px" },
+            { "name": "lg", "value": "1024px" },
+            { "name": "xl", "value": "1280px" }
+        ]
+    },
+    "components": [
+        {
+            "name": "Primary Button",
+            "kind": "button",
+            "refersTo": "button-primary",
+            "description": "The recommended next action in patient and staff workflows.",
+            "html": "<button class=\"ds-btn-primary\" type=\"button\">Continue</button>",
+            "css": ".ds-btn-primary { height: 36px; padding: 8px 16px; border: 0; border-radius: 6px; background: #0f766e; color: #fff; font: 500 14px/1.25 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #115e59; } .ds-btn-primary:active { background: #134e4a; } .ds-btn-primary:focus-visible { outline: 3px solid rgb(13 148 136 / 0.45); outline-offset: 2px; }"
+        },
+        {
+            "name": "Outline Button",
+            "kind": "button",
+            "refersTo": "button-outline",
+            "description": "A secondary action that remains visible without competing with the recommended path.",
+            "html": "<button class=\"ds-btn-outline\" type=\"button\">Staff sign in</button>",
+            "css": ".ds-btn-outline { height: 36px; padding: 8px 16px; border: 1px solid hsl(0 0% 89.8%); border-radius: 6px; background: #fff; color: #020617; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); font: 500 14px/1.25 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-outline:hover { background: hsl(0 0% 96.1%); } .ds-btn-outline:active { background: hsl(0 0% 92.1%); } .ds-btn-outline:focus-visible { outline: 3px solid rgb(15 118 110 / 0.35); outline-offset: 2px; }"
+        },
+        {
+            "name": "Text Input",
+            "kind": "input",
+            "refersTo": "input",
+            "description": "The standard field for patient identifiers and clinical intake answers.",
+            "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Mobile number</span><input class=\"ds-input\" type=\"tel\" placeholder=\"024 123 4567\"></label>",
+            "css": ".ds-field { display: grid; gap: 8px; color: #020617; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; } .ds-field-label { font-size: 14px; font-weight: 500; line-height: 1.25; } .ds-input { width: 100%; height: 36px; padding: 4px 12px; border: 1px solid hsl(0 0% 89.8%); border-radius: 6px; background: #fff; color: #020617; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); font: 400 16px/1.5 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; transition: border-color 150ms cubic-bezier(0.4,0,0.2,1), box-shadow 150ms cubic-bezier(0.4,0,0.2,1); } .ds-input::placeholder { color: #64748b; } .ds-input:hover { border-color: #94a3b8; } .ds-input:focus-visible { border-color: #0f766e; outline: 0; box-shadow: 0 0 0 3px rgb(15 118 110 / 0.25); }"
+        },
+        {
+            "name": "Intake Panel",
+            "kind": "card",
+            "refersTo": "intake-panel",
+            "description": "The primary container for one focused step of the patient intake journey.",
+            "html": "<section class=\"ds-intake-panel\"><div class=\"ds-intake-step\">Step 1 of 4</div><h2 class=\"ds-intake-title\">Let’s identify the patient</h2><p class=\"ds-intake-copy\">Enter a mobile number to find an existing profile or begin a new one.</p></section>",
+            "css": ".ds-intake-panel { padding: 32px; border: 1px solid hsl(0 0% 89.8%); border-radius: 16px; background: #fff; color: #020617; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.10); font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; } .ds-intake-panel:hover { border-color: #cbd5e1; } .ds-intake-panel:focus-within { border-color: #0f766e; } .ds-intake-step { margin-bottom: 8px; color: #0f766e; font-size: 14px; font-weight: 500; } .ds-intake-title { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.33; } .ds-intake-copy { margin: 8px 0 0; color: #475569; font-size: 14px; line-height: 1.5; }"
+        },
+        {
+            "name": "Application Header",
+            "kind": "nav",
+            "description": "A quiet structural header that preserves orientation without competing with the active task.",
+            "html": "<nav class=\"ds-header\" aria-label=\"Primary\"><a class=\"ds-brand\" href=\"#\"><span class=\"ds-brand-mark\">M</span><span>MediPath</span></a><span class=\"ds-header-context\">Patient intake</span></nav>",
+            "css": ".ds-header { min-height: 68px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid hsl(0 0% 89.8%); background: #fff; color: #020617; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; } .ds-brand { display: inline-flex; align-items: center; gap: 10px; color: #020617; font-size: 16px; font-weight: 600; text-decoration: none; } .ds-brand:hover { color: #0f766e; } .ds-brand:focus-visible { border-radius: 4px; outline: 3px solid rgb(15 118 110 / 0.35); outline-offset: 3px; } .ds-brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border: 2px solid #0f766e; border-radius: 6px; color: #0f766e; font-size: 14px; } .ds-header-context { color: #64748b; font-size: 14px; }"
+        },
+        {
+            "name": "Progress Eyebrow",
+            "kind": "chip",
+            "description": "A compact orientation label placed immediately above an intake-step heading.",
+            "html": "<span class=\"ds-progress-eyebrow\">Step 2 of 4</span>",
+            "css": ".ds-progress-eyebrow { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 0; border-radius: 4px; color: #0f766e; font: 500 14px/1.25 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; } .ds-progress-eyebrow:hover { color: #115e59; } .ds-progress-eyebrow:focus-visible { outline: 3px solid rgb(15 118 110 / 0.35); outline-offset: 2px; }"
+        },
+        {
+            "name": "Patient Journey Rail",
+            "kind": "custom",
+            "description": "The persistent six-stage orientation model for the patient intake journey.",
+            "html": "<ol class=\"ds-journey\" aria-label=\"Patient journey progress\"><li class=\"ds-journey-stage ds-journey-complete\"><span>1</span>Patient</li><li class=\"ds-journey-stage ds-journey-current\" aria-current=\"step\"><span>2</span>History</li><li class=\"ds-journey-stage\"><span>3</span>Current visit</li><li class=\"ds-journey-stage\"><span>4</span>Guidance</li><li class=\"ds-journey-stage\"><span>5</span>Hospital</li><li class=\"ds-journey-stage\"><span>6</span>Share</li></ol>",
+            "css": ".ds-journey { display: flex; overflow-x: auto; margin: 0; padding: 0 16px; border-block: 1px solid #f1f5f9; background: rgb(248 250 252 / 0.8); color: #94a3b8; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; list-style: none; } .ds-journey-stage { display: flex; flex: 1 0 max-content; align-items: center; gap: 8px; padding: 12px; font-size: 14px; font-weight: 500; white-space: nowrap; } .ds-journey-stage span { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; font-size: 12px; font-weight: 600; } .ds-journey-complete { color: #334155; } .ds-journey-complete span { border-color: #99f6e4; background: #f0fdfa; color: #115e59; } .ds-journey-current { color: #115e59; } .ds-journey-current span { border-color: #0f766e; background: #0f766e; color: #fff; } .ds-journey-stage:focus-visible { outline: 3px solid rgb(15 118 110 / 0.35); outline-offset: -3px; }"
+        },
+        {
+            "name": "Warning Notice",
+            "kind": "custom",
+            "description": "A semantic notice for information that requires caution without implying an emergency.",
+            "html": "<div class=\"ds-warning\" role=\"status\"><strong class=\"ds-warning-title\">Please review</strong><span class=\"ds-warning-copy\">Confirm this information before continuing.</span></div>",
+            "css": ".ds-warning { display: grid; gap: 4px; padding: 16px; border: 1px solid #fde68a; border-radius: 8px; background: #fffbeb; color: #92400e; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; } .ds-warning:hover { border-color: #fbbf24; } .ds-warning:focus-within { outline: 3px solid rgb(245 158 11 / 0.30); outline-offset: 2px; } .ds-warning-title { font-size: 14px; font-weight: 600; } .ds-warning-copy { font-size: 14px; line-height: 1.5; }"
+        },
+        {
+            "name": "Operational Status",
+            "kind": "chip",
+            "description": "A compact active or available state used in hospital administration and queue operations.",
+            "html": "<span class=\"ds-operational-status\"><span class=\"ds-operational-status-dot\" aria-hidden=\"true\"></span>Tenant active</span>",
+            "css": ".ds-operational-status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #e2e8f0; background: #fff; color: #020617; font: 400 14px/1.25 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; } .ds-operational-status-dot { width: 8px; height: 8px; border-radius: 999px; background: #10b981; } .ds-operational-status:hover { border-color: #cbd5e1; } .ds-operational-status:focus-visible { outline: 3px solid rgb(15 118 110 / 0.35); outline-offset: 2px; }"
+        }
+    ],
+    "narrative": {
+        "northStar": "The Calm Triage Desk",
+        "overview": "MediPath should feel like arriving at a well-organized clinical desk where every next action is visible and understandable. The interface is calm, clinical, and approachable: generous space lowers pressure, direct language reduces uncertainty, and Care Teal marks the safe path forward without making the experience feel cold.\n\nThe system is restrained rather than decorative. Light neutral canvases, crisp borders, compact controls, and a limited accent palette keep attention on patient information and operational decisions. Boldness comes from structural hierarchy and workflow rhythm—split compositions, connected sequences, and divided information—not decorative effects. Avoid alarmist emergency-room styling and playful wellness-app aesthetics. The approved direction is light-first across patient and staff experiences; the starter dashboard's dark appearance is not a design-system target.",
+        "keyCharacteristics": [
+            "Calm clinical clarity",
+            "Care Teal reserved for guidance and action",
+            "Light-first, high-contrast surfaces",
+            "Spacious patient flows and compact operational controls",
+            "Borders before shadows"
+        ],
+        "rules": [
+            {
+                "name": "The Care Teal Rule",
+                "body": "Use Care Teal to show brand, progress, and the recommended next action; do not flood large surfaces with it.",
+                "section": "colors"
+            },
+            {
+                "name": "The Status Has Meaning Rule",
+                "body": "Reserve amber and red for genuine warning, validation, risk, or destructive states—not decoration.",
+                "section": "colors"
+            },
+            {
+                "name": "The One Typeface Rule",
+                "body": "Use weight, scale, and spacing—not additional font families—to create hierarchy.",
+                "section": "typography"
+            },
+            {
+                "name": "The Workflow Rhythm Rule",
+                "body": "Make the care journey legible as a connected sequence, keep the active stage in view, and use responsive reflow before removing orientation cues.",
+                "section": "layout"
+            },
+            {
+                "name": "The Borders First Rule",
+                "body": "Establish grouping with spacing, surface color, and a fine border before adding elevation.",
+                "section": "elevation"
+            }
+        ],
+        "dos": [
+            "Do use Care Teal for the primary next action and current-step guidance.",
+            "Do preserve visible keyboard focus, strong contrast, and readable mobile spacing.",
+            "Do use borders and spacing as the default tools for grouping content.",
+            "Do keep patient instructions direct, short, and visually close to the field or decision they explain.",
+            "Do keep the active patient-journey stage visible and semantically identified across viewport sizes."
+        ],
+        "donts": [
+            "Don't use the current starter dashboard's dark styling as the target for new MediPath screens.",
+            "Don't use red or amber as decorative brand colors or to create unnecessary urgency.",
+            "Don't introduce playful wellness illustrations, loud gradients, or oversized decorative effects.",
+            "Don't add shadows to every surface or use multiple competing primary actions in one section."
+        ]
+    }
+}
