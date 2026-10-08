@@ -47,9 +47,13 @@ class ConsultantChatController extends Controller
                 'exception' => $exception::class,
             ]);
 
-            $message = $exception->getMessage() === 'GEMINI_CONNECTION_FAILED'
-                ? 'The AI consultant did not respond in time. Try again, or request a real consultant.'
-                : 'The AI consultant is unavailable right now. Try again, or request a real consultant.';
+            $message = match ($exception->getMessage()) {
+                'GEMINI_CONNECTION_FAILED' => 'The AI consultant did not respond in time. Check your connection and try again.',
+                'GEMINI_SERVICE_UNAVAILABLE' => 'Gemini is temporarily busy. Please try again in a moment.',
+                'GEMINI_RATE_LIMITED' => 'Gemini received too many requests in a short period. Please wait a minute and try again.',
+                'GEMINI_API_KEY_MISSING' => 'The AI consultant has not been configured yet. You can request a real consultant instead.',
+                default => 'The AI consultant is unavailable right now. Try again, or request a real consultant.',
+            };
 
             return back()->withErrors([
                 'message' => $message,

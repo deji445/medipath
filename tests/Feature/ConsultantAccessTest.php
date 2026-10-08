@@ -83,12 +83,55 @@ class ConsultantAccessTest extends TestCase
     {
         config()->set('medipath.assessment.gemini.api_key', 'test-key');
         config()->set('medipath.assessment.gemini.endpoint', 'https://example.test/interactions');
+        config()->set('medipath.assessment.gemini.retry_delay_ms', 0);
 
         Http::fake(fn () => throw new ConnectionException('Request timed out.'));
 
         $this->post('/consultant/chat', ['message' => 'I have a mild headache.'])
             ->assertSessionHasErrors([
-                'message' => 'The AI consultant did not respond in time. Try again, or request a real consultant.',
+                'message' => 'The AI consultant did not respond in time. Check your connection and try again.',
             ]);
+    }
+
+    public function test_the_consultant_retries_a_temporary_service_failure(): void
+    {
+        config()->set('medipath.assessment.gemini.api_key', 'test-key');
+        config()->set('medipath.assessment.gemini.endpoint', 'https://example.test/interactions');
+        config()->set('medipath.assessment.gemini.retry_delay_ms', 0);
+
+        Http::fakeSequence()
+            ->push([], 503)
+            ->push([
+                'status' => 'completed',
+                'steps' => [[
+                    'type' => 'model_output',
+                    'content' => [[
+                        'type' => 'text',
+                        'text' => 'How long have you felt this way?',
+                    ]],
+                ]],
+            ]);
+
+        $this->post('/consultant/chat', ['message' => 'I feel mildly unwell.'])
+            ->assertRedirect('/?consult=ai')
+            ->assertSessionHas('consultant_chat.1.content', 'How long have you felt this way?');
+
+        Http::assertSentCount(2);
+    }
+
+    public function test_a_rate_limit_returns_a_specific_wait_message_without_retrying(): void
+    {
+        config()->set('medipath.assessment.gemini.api_key', 'test-key');
+        config()->set('medipath.assessment.gemini.endpoint', 'https://example.test/interactions');
+        config()->set('medipath.assessment.gemini.retry_delay_ms', 0);
+
+        Http::fake(['https://example.test/interactions' => Http::response([], 429)]);
+
+        $this->post('/consultant/chat', ['message' => 'I feel mildly unwell.'])
+            ->assertSessionHasErrors([
+                'message' => 'Gemini received too many requests in a short period. Please wait a minute and try again.',
+            ]);
+
+        Http::assertSentCount(1);
     }
 }
