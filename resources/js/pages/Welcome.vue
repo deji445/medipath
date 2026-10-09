@@ -333,6 +333,11 @@ watch(
 
         if (!latestMessage) return;
 
+        chatHistory.value?.scrollTo({
+            top: chatHistory.value.scrollHeight,
+            behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        });
+
         gsap.killTweensOf(latestMessage);
         gsap.fromTo(
             latestMessage,
@@ -746,6 +751,10 @@ onBeforeUnmount(() => {
                                     action="/consultant/chat"
                                     method="post"
                                     class="mt-4"
+                                    :options="{
+                                        preserveScroll: true,
+                                        preserveState: true,
+                                    }"
                                     reset-on-success
                                     @success="chatDraft = ''"
                                     v-slot="{ errors, processing }"
@@ -798,6 +807,10 @@ onBeforeUnmount(() => {
                                         v-if="chatMessages.length"
                                         action="/consultant/chat"
                                         method="delete"
+                                        :options="{
+                                            preserveScroll: true,
+                                            preserveState: true,
+                                        }"
                                     >
                                         <button
                                             class="inline-flex shrink-0 items-center gap-1 font-semibold text-[#45635b] underline underline-offset-4"
