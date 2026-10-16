@@ -86,7 +86,10 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
+            // Neon exposes DATABASE_URL for pooled application traffic. Keep
+            // DB_URL as a fallback so existing local PostgreSQL setups still
+            // work when Neon has not been linked.
+            'url' => env('DATABASE_URL') ?: env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
