@@ -94,16 +94,16 @@ function removeMedication(index: number) {
     >
         <div class="grid lg:grid-cols-[0.72fr_1.28fr]">
             <aside
-                class="border-b border-teal-200 bg-teal-50 p-6 lg:border-r lg:border-b-0 lg:p-8"
+                class="hidden border-b border-teal-200 bg-teal-50 p-6 lg:block lg:border-r lg:border-b-0 lg:p-8"
             >
                 <div
                     class="flex size-11 items-center justify-center rounded-xl border border-teal-200 bg-white text-teal-700"
                 >
                     <UserRoundSearch class="size-5" aria-hidden="true" />
                 </div>
-                <h2 class="mt-7 text-xl font-semibold text-teal-950">
+                <p class="mt-7 text-xl font-semibold text-teal-950">
                     Start with the patient
-                </h2>
+                </p>
                 <p class="mt-3 text-sm leading-6 text-teal-900/75">
                     Find an existing profile or add the details needed for this
                     visit. Returning patients can continue without re-entering
@@ -134,10 +134,22 @@ function removeMedication(index: number) {
                         Enter a Ghanaian mobile number. We will use it only to
                         find the patient’s demo profile.
                     </p>
+                    <div
+                        class="mt-5 flex max-w-xl items-start gap-3 rounded-lg bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-950 lg:hidden"
+                    >
+                        <ShieldCheck
+                            class="mt-0.5 size-5 shrink-0 text-teal-700"
+                            aria-hidden="true"
+                        />
+                        <p>
+                            Used only to find your profile. Nothing is shared
+                            without your consent.
+                        </p>
+                    </div>
                     <Form
                         action="/intake/lookup"
                         method="post"
-                        class="mt-8 max-w-xl space-y-5"
+                        class="mt-6 max-w-xl space-y-5 lg:mt-8"
                         v-slot="{ errors, processing }"
                         @start="beginPatientLookup"
                         @finish="finishPatientLookup"

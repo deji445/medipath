@@ -6,12 +6,16 @@ use App\Models\Patient;
 use App\Models\PatientCondition;
 use App\Models\PatientMedication;
 use App\Models\Visit;
+use App\Services\Ai\AiCircuitBreaker;
+use App\Services\Ai\AiRequestRecorder;
 use App\Services\Assessment\AssessmentInputBuilder;
 use App\Services\Assessment\AssessmentUnavailableException;
 use App\Services\Assessment\GeminiAssessmentProvider;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class GeminiAssessmentProviderTest extends TestCase
@@ -26,6 +30,19 @@ class GeminiAssessmentProviderTest extends TestCase
             'medipath.assessment.gemini.endpoint' => 'https://generativelanguage.googleapis.com/v1/interactions',
             'medipath.assessment.gemini.retry_delay_ms' => 0,
         ]);
+
+        Schema::create('ai_request_events', function (Blueprint $table): void {
+            $table->id();
+            $table->string('feature');
+            $table->string('provider');
+            $table->string('model');
+            $table->string('outcome');
+            $table->unsignedInteger('duration_ms');
+            $table->unsignedTinyInteger('attempt_count');
+            $table->unsignedTinyInteger('retry_count');
+            $table->string('error_code')->nullable();
+            $table->timestamp('created_at');
+        });
     }
 
     public function test_it_sends_only_the_deidentified_contract_and_accepts_valid_structured_output(): void
@@ -61,6 +78,12 @@ class GeminiAssessmentProviderTest extends TestCase
 
             return true;
         });
+        $this->assertDatabaseHas('ai_request_events', [
+            'feature' => 'structured_assessment',
+            'outcome' => 'SUCCEEDED',
+            'attempt_count' => 1,
+            'retry_count' => 0,
+        ]);
     }
 
     public function test_it_retries_invalid_output_once_with_the_same_request_key(): void
@@ -77,6 +100,12 @@ class GeminiAssessmentProviderTest extends TestCase
         $this->assertSame('MEDIUM', $result->severity->value);
         Http::assertSentCount(2);
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('X-Request-Id', 'same-key'));
+        $this->assertDatabaseHas('ai_request_events', [
+            'feature' => 'structured_assessment',
+            'outcome' => 'SUCCEEDED',
+            'attempt_count' => 2,
+            'retry_count' => 1,
+        ]);
     }
 
     public function test_two_provider_failures_return_unavailable_instead_of_a_default_result(): void
@@ -93,11 +122,22 @@ class GeminiAssessmentProviderTest extends TestCase
         }
 
         Http::assertSentCount(2);
+        $this->assertDatabaseHas('ai_request_events', [
+            'feature' => 'structured_assessment',
+            'outcome' => 'FAILED',
+            'attempt_count' => 2,
+            'retry_count' => 1,
+            'error_code' => 'GEMINI_HTTP_503',
+        ]);
     }
 
     private function provider(): GeminiAssessmentProvider
     {
-        return new GeminiAssessmentProvider(new AssessmentInputBuilder);
+        return new GeminiAssessmentProvider(
+            new AssessmentInputBuilder,
+            new AiRequestRecorder,
+            new AiCircuitBreaker,
+        );
     }
 
     /** @return array<string, string> */

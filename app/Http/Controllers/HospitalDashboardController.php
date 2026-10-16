@@ -8,22 +8,17 @@ use App\Models\Hospital;
 use App\Models\HospitalSubmission;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class HospitalDashboardController extends Controller
 {
-    public function __invoke(Request $request, TenantContext $tenantContext): Response
+    public function __invoke(Request $request, TenantContext $tenantContext): Response|RedirectResponse
     {
         if ($tenantContext->isSuperAdmin()) {
-            return Inertia::render('Dashboard', [
-                'hospital' => null,
-                'counts' => ['highPriority' => 0, 'waiting' => 0, 'inTriage' => 0],
-                'submissions' => $this->emptyPage(),
-                'filters' => ['search' => '', 'severity' => 'ALL', 'status' => 'ACTIVE'],
-                'platformContext' => true,
-            ]);
+            return to_route('platform.index');
         }
 
         $hospitalId = $tenantContext->hospitalId();
@@ -72,7 +67,6 @@ class HospitalDashboardController extends Controller
             ],
             'submissions' => $submissions,
             'filters' => compact('search', 'severity', 'status'),
-            'platformContext' => false,
         ]);
     }
 
@@ -121,16 +115,6 @@ class HospitalDashboardController extends Controller
                 'relationship' => $respondent['relationship'] ?? null,
             ],
             'consentRecordedAt' => $snapshot['consent_recorded_at'] ?? null,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private function emptyPage(): array
-    {
-        return [
-            'data' => [], 'current_page' => 1, 'last_page' => 1, 'per_page' => 12,
-            'total' => 0, 'from' => null, 'to' => null, 'prev_page_url' => null,
-            'next_page_url' => null, 'links' => [],
         ];
     }
 }

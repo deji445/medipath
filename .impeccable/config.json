@@ -1,3 +1,18 @@
 {
-    "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "resources/js/pages/Welcome.vue"
+        ],
+        "createdAt": "2026-10-11T00:33:30.419Z",
+        "reason": "user confirmed: the home-page emergency button should be a red glowing alarm"
+      }
+    ]
+  }
 }

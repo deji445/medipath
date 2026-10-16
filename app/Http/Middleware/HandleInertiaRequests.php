@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,6 +36,27 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $supportedLocales = config('localization.supported', []);
+        $locales = [];
+
+        if (is_array($supportedLocales)) {
+            foreach ($supportedLocales as $code => $details) {
+                if (! is_string($code) || ! is_array($details)) {
+                    continue;
+                }
+
+                $locales[] = [
+                    'code' => $code,
+                    'label' => is_string($details['label'] ?? null)
+                        ? $details['label']
+                        : $code,
+                    'nativeLabel' => is_string($details['native_label'] ?? null)
+                        ? $details['native_label']
+                        : $code,
+                ];
+            }
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -42,6 +64,15 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'localization' => [
+                'current' => App::currentLocale(),
+                'locales' => $locales,
+                'translations' => [
+                    'language' => __('common.language'),
+                    'english' => __('common.english'),
+                    'twi' => __('common.twi'),
+                ],
+            ],
         ];
     }
 }

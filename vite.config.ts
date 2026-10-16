@@ -70,6 +70,7 @@ export default defineConfig({
         htmlWhitespaceSensitivity: 'css',
         ignorePatterns: [
             '.github/**',
+            '.impeccable/**',
             'composer.json',
             'docs/**',
             'resources/js/components/ui/*',

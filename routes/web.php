@@ -9,6 +9,7 @@ use App\Http\Controllers\HospitalDashboardController;
 use App\Http\Controllers\HospitalSettingsController;
 use App\Http\Controllers\HospitalStaffController;
 use App\Http\Controllers\HospitalSubmissionStatusController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PatientAssessmentController;
 use App\Http\Controllers\PatientIntakeController;
 use App\Http\Controllers\PatientRoutingController;
@@ -18,13 +19,24 @@ use App\Http\Controllers\WalkInIntakeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::post('locale', LocaleController::class)->name('locale.store');
 Route::get('emergency', EmergencyHelpController::class)->name('emergency');
 Route::post('consultant/chat', [ConsultantChatController::class, 'store'])
     ->middleware('throttle:12,1')->name('consultant.chat.store');
+Route::post('consultant/chat/stream', [ConsultantChatController::class, 'stream'])
+    ->middleware('throttle:12,1')->name('consultant.chat.stream');
+Route::post('consultant/chat/intake', [ConsultantChatController::class, 'startIntake'])
+    ->middleware('throttle:5,1')->name('consultant.chat.intake');
 Route::delete('consultant/chat', [ConsultantChatController::class, 'destroy'])
     ->name('consultant.chat.destroy');
 Route::post('consultant/request', [ConsultantRequestController::class, 'store'])
     ->middleware('throttle:5,10')->name('consultant.request.store');
+Route::post('consultant/request/verify', [ConsultantRequestController::class, 'confirm'])
+    ->middleware('throttle:10,1')->name('consultant.request.confirm');
+Route::post('consultant/request/resend', [ConsultantRequestController::class, 'resend'])
+    ->middleware('throttle:3,10')->name('consultant.request.resend');
+Route::delete('consultant/request', [ConsultantRequestController::class, 'destroy'])
+    ->name('consultant.request.destroy');
 Route::get('walk-in/{hospital:slug}', [WalkInIntakeController::class, 'show'])
     ->name('walk-in.show');
 Route::post('walk-in/{hospital:slug}', [WalkInIntakeController::class, 'start'])
@@ -32,7 +44,12 @@ Route::post('walk-in/{hospital:slug}', [WalkInIntakeController::class, 'start'])
 
 Route::prefix('intake')->name('intake.')->group(function () {
     Route::get('/', [PatientIntakeController::class, 'start'])->name('start');
-    Route::post('lookup', [PatientIntakeController::class, 'lookup'])->middleware('throttle:10,1')->name('lookup');
+    Route::post('lookup', [PatientIntakeController::class, 'lookup'])->middleware('throttle:5,1')->name('lookup');
+    Route::get('verify-phone', [PatientIntakeController::class, 'verifyPhone'])->name('phone.verify');
+    Route::post('verify-phone', [PatientIntakeController::class, 'confirmPhone'])
+        ->middleware('throttle:10,1')->name('phone.confirm');
+    Route::post('verify-phone/resend', [PatientIntakeController::class, 'resendPhoneCode'])
+        ->middleware('throttle:3,10')->name('phone.resend');
     Route::post('profile', [PatientIntakeController::class, 'storeProfile'])->name('profile.store');
     Route::get('identity', [PatientIntakeController::class, 'identity'])->name('identity');
     Route::post('identity', [PatientIntakeController::class, 'storeIdentity'])->name('identity.store');
@@ -54,6 +71,7 @@ Route::prefix('intake/assessment')->name('assessment.')->group(function () {
     Route::post('safety', [PatientAssessmentController::class, 'storeSafety'])->name('safety.store');
     Route::get('emergency', [PatientAssessmentController::class, 'emergency'])->name('emergency');
     Route::get('result', [PatientAssessmentController::class, 'result'])->name('result');
+    Route::post('result/recover', [PatientAssessmentController::class, 'recover'])->name('recover');
 });
 
 Route::prefix('intake/routing')->name('routing.')->group(function () {

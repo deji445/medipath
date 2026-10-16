@@ -20,6 +20,19 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            localization: {
+                current: 'en' | 'tw';
+                locales: Array<{
+                    code: 'en' | 'tw';
+                    label: string;
+                    nativeLabel: string;
+                }>;
+                translations: {
+                    language: string;
+                    english: string;
+                    twi: string;
+                };
+            };
             [key: string]: unknown;
         };
     }

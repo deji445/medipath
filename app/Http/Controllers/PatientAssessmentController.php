@@ -16,7 +16,7 @@ use App\Services\Assessment\AssessmentProvider;
 use App\Services\Assessment\AssessmentQuestionnaire;
 use App\Services\Assessment\AssessmentResult;
 use App\Services\Assessment\AssessmentUnavailableException;
-use App\Services\Assessment\EmergencyConcernDetector;
+use App\Services\Assessment\DeterministicEmergencyScreener;
 use App\Services\Assessment\RedFlagDetector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -220,7 +220,7 @@ class PatientAssessmentController extends Controller
         AssessmentQuestionnaire $questionnaire,
         AssessmentProvider $provider,
         AssessmentConversationProvider $conversationProvider,
-        EmergencyConcernDetector $concernDetector,
+        DeterministicEmergencyScreener $emergencyScreener,
     ): RedirectResponse {
         $visit = $this->activeVisit($request);
 
@@ -243,7 +243,7 @@ class PatientAssessmentController extends Controller
                 $request,
                 $visit,
                 $conversationProvider,
-                $concernDetector,
+                $emergencyScreener,
             );
         }
 
@@ -469,6 +469,33 @@ class PatientAssessmentController extends Controller
         ]);
     }
 
+    public function recover(
+        Request $request,
+        AssessmentConversationProvider $provider,
+    ): RedirectResponse {
+        $visit = $this->activeVisit($request);
+
+        if (! $visit) {
+            return to_route('intake.start');
+        }
+
+        $answers = $this->assessmentAnswers($visit);
+
+        if ($visit->assessment?->status !== AssessmentStatus::Failed || $answers === []) {
+            return to_route('assessment.result');
+        }
+
+        $errorCode = $visit->assessment->error_code;
+        $this->saveConversationResult(
+            $visit,
+            $this->serviceFallbackResult($visit, $provider->model()),
+            count($answers),
+            $errorCode,
+        );
+
+        return to_route('assessment.result');
+    }
+
     /** @return array<string, string> */
     private function assessmentAnswers(Visit $visit): array
     {
@@ -529,7 +556,7 @@ class PatientAssessmentController extends Controller
         StoreAssessmentAnswerRequest $request,
         Visit $visit,
         AssessmentConversationProvider $provider,
-        EmergencyConcernDetector $concernDetector,
+        DeterministicEmergencyScreener $emergencyScreener,
     ): RedirectResponse {
         $answers = $this->assessmentAnswers($visit);
         $question = $this->pendingConversationQuestion($visit, count($answers));
@@ -548,7 +575,7 @@ class PatientAssessmentController extends Controller
         $questions[$questionKey] = $question['question'];
         $redFlags = array_map(
             fn (RedFlagCode $code): string => $code->value,
-            $concernDetector->detect($answer),
+            $emergencyScreener->screenText($answer),
         );
 
         DB::transaction(function () use ($visit, $answers, $questions, $redFlags, $answer): void {
@@ -618,19 +645,12 @@ class PatientAssessmentController extends Controller
             $result = $turn->result ?? $this->questionLimitResult($visit, $answers, $provider->model());
             $this->saveConversationResult($visit, $result, count($answers));
         } catch (AssessmentUnavailableException $exception) {
-            $visit->assessment()->update([
-                'status' => AssessmentStatus::Failed,
-                'severity' => null,
-                'recommended_action' => null,
-                'symptom_summary' => null,
-                'red_flags' => [],
-                'reason_codes' => [],
-                'provider_model' => $provider->model(),
-                'question_count' => count($answers),
-                'error_code' => $exception->errorCode,
-            ]);
-
-            return to_route('assessment.result');
+            $this->saveConversationResult(
+                $visit,
+                $this->serviceFallbackResult($visit, $provider->model()),
+                count($answers),
+                $exception->errorCode,
+            );
         }
 
         $visit->refresh()->load('assessment');
@@ -665,9 +685,32 @@ class PatientAssessmentController extends Controller
         );
     }
 
-    private function saveConversationResult(Visit $visit, AssessmentResult $result, int $questionCount): void
+    private function serviceFallbackResult(Visit $visit, string $model): AssessmentResult
     {
-        DB::transaction(function () use ($visit, $result, $questionCount): void {
+        $mainConcern = trim((string) ($visit->intake_answers['main_complaint'] ?? 'The reported concern'));
+
+        return new AssessmentResult(
+            severity: SeverityLevel::Medium,
+            recommendedAction: RecommendedAction::SeekCareSoon,
+            symptomSummary: mb_substr(
+                $mainConcern.'. The AI assessment service was temporarily unavailable, so MediPath used a conservative care recommendation based on the saved information. This is guidance, not a diagnosis.',
+                0,
+                1500,
+            ),
+            redFlags: [],
+            reasonCodes: [AssessmentReasonCode::AssessmentServiceUnavailable->value],
+            schemaVersion: '1.0',
+            providerModel: $model.'-safe-fallback',
+        );
+    }
+
+    private function saveConversationResult(
+        Visit $visit,
+        AssessmentResult $result,
+        int $questionCount,
+        ?string $errorCode = null,
+    ): void {
+        DB::transaction(function () use ($visit, $result, $questionCount, $errorCode): void {
             $assessment = $visit->assessment()->lockForUpdate()->firstOrFail();
 
             if ($assessment->deterministic_red_flag_match) {
@@ -685,7 +728,7 @@ class PatientAssessmentController extends Controller
                 'ai_schema_version' => $result->schemaVersion,
                 'provider_model' => $result->providerModel,
                 'question_count' => $questionCount,
-                'error_code' => null,
+                'error_code' => $errorCode,
             ]);
             $visit->update([
                 'status' => VisitStatus::AssessmentComplete,

@@ -7,14 +7,22 @@ use App\Enums\RecommendedAction;
 use App\Enums\RedFlagCode;
 use App\Enums\SeverityLevel;
 use App\Models\Visit;
+use App\Services\Ai\AiCircuitBreaker;
+use App\Services\Ai\AiCircuitOpenException;
+use App\Services\Ai\AiRequestRecorder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use JsonException;
+use Throwable;
 
 final class GeminiAssessmentConversationProvider implements AssessmentConversationProvider
 {
-    public function __construct(private readonly AssessmentInputBuilder $inputBuilder) {}
+    public function __construct(
+        private readonly AssessmentInputBuilder $inputBuilder,
+        private readonly AiRequestRecorder $requestRecorder,
+        private readonly AiCircuitBreaker $circuitBreaker,
+    ) {}
 
     public function nextTurn(
         Visit $visit,
@@ -22,6 +30,66 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
         array $questions,
         string $idempotencyKey,
         bool $mustComplete = false,
+    ): AssessmentConversationTurn {
+        $startedAt = hrtime(true);
+        $attemptCount = 0;
+
+        try {
+            $this->circuitBreaker->beforeRequest();
+            $turn = $this->performNextTurn(
+                $visit,
+                $answers,
+                $questions,
+                $idempotencyKey,
+                $mustComplete,
+                $attemptCount,
+            );
+            $this->circuitBreaker->recordSuccess();
+            $this->requestRecorder->record(
+                'assessment_conversation',
+                $this->model(),
+                'SUCCEEDED',
+                $startedAt,
+                $attemptCount,
+            );
+
+            return $turn;
+        } catch (Throwable $exception) {
+            $errorCode = match (true) {
+                $exception instanceof AiCircuitOpenException => $exception->getMessage(),
+                $exception instanceof AssessmentUnavailableException => $exception->errorCode,
+                default => 'GEMINI_UNEXPECTED_FAILURE',
+            };
+
+            $this->circuitBreaker->recordFailure($errorCode);
+            $this->requestRecorder->record(
+                'assessment_conversation',
+                $this->model(),
+                'FAILED',
+                $startedAt,
+                $attemptCount,
+                $errorCode,
+            );
+
+            if ($exception instanceof AiCircuitOpenException) {
+                throw new AssessmentUnavailableException($errorCode, $exception);
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $answers
+     * @param  array<string, string>  $questions
+     */
+    private function performNextTurn(
+        Visit $visit,
+        array $answers,
+        array $questions,
+        string $idempotencyKey,
+        bool $mustComplete,
+        int &$attemptCount,
     ): AssessmentConversationTurn {
         $apiKey = (string) config('medipath.assessment.gemini.api_key');
 
@@ -38,6 +106,8 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
         $lastError = new AssessmentUnavailableException('GEMINI_UNAVAILABLE');
 
         for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $attemptCount = $attempt;
+
             try {
                 $response = Http::acceptJson()
                     ->asJson()
@@ -150,6 +220,9 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
     private function systemInstruction(): string
     {
         $maxQuestions = max(1, min((int) config('medipath.assessment.max_questions', 10), 10));
+        $languageInstruction = app()->getLocale() === 'tw'
+            ? 'Write the question and symptom_summary only in clear, natural Ghanaian Twi. Keep precise clinical terms in familiar English parentheses when that improves safety. Keep enum codes unchanged.'
+            : 'Write the question and symptom_summary in clear English.';
 
         return <<<PROMPT
 You are MediPath's medical intake assistant for a dummy-data prototype. Use only facts in the supplied JSON.
@@ -159,6 +232,8 @@ Conduct a short symptom intake by either asking exactly one concise plain-langua
 For a question response, set assessment_complete to false, put the question in question, set severity, recommended_action, and symptom_summary to null, and use empty arrays for red_flags and reason_codes.
 
 For a completed response, set assessment_complete to true and question to null. Never diagnose, prescribe, change medication, give probabilities, claim the patient is safe, invent facts, or mention hospital availability. HIGH maps to SEEK_EMERGENCY_CARE_NOW, MEDIUM to SEEK_CARE_SOON, and LOW to ROUTINE_CARE_OR_SELF_CARE. If information is contradictory, unclear, or still insufficient at the question limit, use MEDIUM. Use only schema-listed codes and return JSON only.
+
+{$languageInstruction}
 PROMPT;
     }
 

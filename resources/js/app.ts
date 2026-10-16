@@ -5,6 +5,7 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 import IntakeLayout from '@/layouts/IntakeLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { initializePageLocalization } from '@/lib/pageLocalization';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -40,7 +41,7 @@ void createInertiaApp({
     progress: {
         color: '#0F766E',
     },
-});
+}).then(initializePageLocalization);
 
 // This will set light / dark mode on page load...
 initializeTheme();

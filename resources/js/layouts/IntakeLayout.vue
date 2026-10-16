@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { Siren } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import { Toaster } from '@/components/ui/sonner';
 
 const page = usePage();
@@ -58,11 +59,11 @@ watch(() => page.url, revealCurrentStage);
         <Toaster position="top-center" />
         <header class="border-b border-slate-200 bg-white/95 backdrop-blur-sm">
             <div
-                class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-4 sm:px-6"
+                class="mx-auto flex max-w-5xl items-center gap-1 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4"
             >
                 <Link
                     href="/"
-                    class="flex items-center gap-3 rounded-md text-lg font-semibold outline-none focus-visible:ring-3 focus-visible:ring-teal-700/30"
+                    class="flex min-h-11 items-center gap-3 rounded-md text-lg font-semibold outline-none focus-visible:ring-3 focus-visible:ring-teal-700/30"
                 >
                     <AppLogoIcon class="size-9 text-[#197f6d]" />
                     <span>MediPath</span>
@@ -73,13 +74,14 @@ watch(() => page.url, revealCurrentStage);
                 >
                     Guided patient intake
                 </span>
+                <LanguageSwitch class="ml-auto" />
                 <Link
                     href="/emergency"
-                    class="ml-auto inline-flex h-9 items-center gap-2 rounded-md bg-[#c53f52] px-3 text-sm font-semibold text-white shadow-[0_8px_18px_-12px_rgba(197,63,82,0.9)] transition-colors outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-[#c53f52]/30"
+                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-md bg-[#c53f52] text-sm font-semibold text-white shadow-[0_8px_18px_-12px_rgba(197,63,82,0.9)] transition-colors outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-[#c53f52]/30 sm:w-auto sm:px-3"
+                    aria-label="Emergency help"
                 >
                     <Siren class="size-4" aria-hidden="true" />
                     <span class="hidden sm:inline">Emergency help</span>
-                    <span class="sm:hidden">Emergency</span>
                 </Link>
             </div>
 
@@ -104,7 +106,7 @@ watch(() => page.url, revealCurrentStage);
                                 ? 'text-teal-800'
                                 : index < currentStage
                                   ? 'text-slate-700'
-                                  : 'text-slate-400'
+                                  : 'text-slate-600'
                         "
                     >
                         <span
@@ -114,7 +116,7 @@ watch(() => page.url, revealCurrentStage);
                                     ? 'border-teal-700 bg-teal-700 text-white'
                                     : index < currentStage
                                       ? 'border-teal-200 bg-teal-50 text-teal-800'
-                                      : 'border-slate-200 bg-white text-slate-400'
+                                      : 'border-slate-300 bg-white text-slate-600'
                             "
                         >
                             {{ index + 1 }}

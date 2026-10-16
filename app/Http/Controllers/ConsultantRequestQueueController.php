@@ -29,6 +29,7 @@ class ConsultantRequestQueueController extends Controller
                 'phone' => $consultantRequest->normalized_phone,
                 'concern' => $consultantRequest->concern,
                 'status' => $consultantRequest->status,
+                'phoneVerifiedAt' => $consultantRequest->phone_verified_at?->toIso8601String(),
                 'createdAt' => $consultantRequest->created_at?->toIso8601String(),
                 'updatedAt' => $consultantRequest->updated_at?->toIso8601String(),
             ]);

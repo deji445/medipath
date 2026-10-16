@@ -62,12 +62,16 @@
         ],
         "ci:check": [
             "Composer\\Config::disableProcessTimeout",
-            "npm run check",
+            "npx vp fmt --check resources/js vite.config.ts tools/twi-review-builder/build.mjs",
+            "npm run check -- --no-fmt resources/js vite.config.ts tools/twi-review-builder/build.mjs",
             "npm run types:check",
             "@test"
         ],
         "types:check": [
             "phpstan analyse --memory-limit=512M"
+        ],
+        "safety:benchmark": [
+            "@php artisan test tests/Unit/ClinicalSafetyBenchmarkTest.php tests/Unit/Services/Assessment/EmergencyConcernDetectorTest.php tests/Unit/Services/Assessment/EmergencyFirstAidGuidanceTest.php tests/Feature/ConsultantAccessTest.php"
         ],
         "test": [
             "@php artisan config:clear --ansi",

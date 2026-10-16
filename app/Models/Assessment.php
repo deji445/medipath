@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<int, string> $reason_codes
  * @property bool $deterministic_red_flag_match
  * @property int $question_count
+ * @property string|null $error_code
  */
 class Assessment extends Model
 {

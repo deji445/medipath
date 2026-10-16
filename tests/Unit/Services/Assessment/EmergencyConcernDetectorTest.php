@@ -6,6 +6,7 @@ use App\Enums\RedFlagCode;
 use App\Services\Assessment\EmergencyConcernDetector;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Tests\Fixtures\EmergencyPhraseCorpus;
 
 class EmergencyConcernDetectorTest extends TestCase
 {
@@ -22,19 +23,7 @@ class EmergencyConcernDetectorTest extends TestCase
     /** @return iterable<string, array{string, RedFlagCode}> */
     public static function emergencyPhrases(): iterable
     {
-        yield 'ear and nose bleeding' => [
-            'Bleeding from my ears and nose',
-            RedFlagCode::SevereUncontrolledBleeding,
-        ];
-        yield 'cannot breathe' => ['I cannot breathe', RedFlagCode::SevereBreathingDifficulty];
-        yield 'passed out' => ['She passed out and is not responding', RedFlagCode::UnresponsiveOrSevereNeurologicalChange];
-        yield 'plain chest pain' => ['My chest hurts', RedFlagCode::ConcerningChestPain];
-        yield 'stroke language' => ['One side is weak and my speech is slurred', RedFlagCode::PossibleStroke];
-        yield 'severe allergy' => ['My throat is closing after an allergic reaction', RedFlagCode::SevereAllergicReaction];
-        yield 'severed limb' => ['My leg was cut off', RedFlagCode::MajorTraumaBurnOrPoisoning];
-        yield 'immediate self harm' => ['I want to harm myself', RedFlagCode::ImmediateHarmIntent];
-        yield 'common breathing typo' => ['I cant breath', RedFlagCode::SevereBreathingDifficulty];
-        yield 'common bleeding typo' => ['My eyes are bleading', RedFlagCode::SevereUncontrolledBleeding];
+        yield from EmergencyPhraseCorpus::cases();
     }
 
     #[DataProvider('nonEmergencyNegations')]
@@ -50,5 +39,10 @@ class EmergencyConcernDetectorTest extends TestCase
         yield 'denies bleeding' => ['The patient denies bleeding heavily'];
         yield 'no longer unconscious' => ['She is no longer unconscious'];
         yield 'without stroke sign' => ['He is speaking normally without slurred speech'];
+        yield 'no breathing difficulty' => ['I am not having trouble breathing'];
+        yield 'no bullet wound' => ['There is no bullet wound'];
+        yield 'no overdose' => ['She has not overdosed'];
+        yield 'no blood in stool' => ['There is no blood in my stool'];
+        yield 'no blood in urine' => ['There is no blood in my urine'];
     }
 }

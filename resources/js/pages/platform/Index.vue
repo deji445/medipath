@@ -2,12 +2,15 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import {
     Building2,
+    CheckCircle2,
+    ChevronDown,
     CirclePlus,
     Network,
     ShieldCheck,
+    TriangleAlert,
     Users,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +55,18 @@ const selected = computed(
         null,
 );
 const createOpen = ref(false);
+const pendingSelectedId = ref<string | null>(null);
+const selectedEditor = ref<HTMLElement | null>(null);
+const advancedDetails = ref<HTMLDetailsElement | null>(null);
+const pendingSelected = computed(
+    () =>
+        props.hospitals.find(
+            (hospital) => hospital.id === pendingSelectedId.value,
+        ) ?? null,
+);
+const selectedDisplayName = computed(
+    () => selected.value?.brandName || selected.value?.name || '',
+);
 
 const createForm = useForm({
     name: '',
@@ -79,9 +94,15 @@ const editForm = useForm({
     accepting_submissions: true,
     is_active: true,
 });
+const brandColorPreview = computed(() =>
+    /^#[0-9a-f]{6}$/i.test(editForm.brand_color)
+        ? editForm.brand_color
+        : '#0F766E',
+);
 
 function loadSelected(hospital: Hospital | null): void {
     if (!hospital) return;
+    pendingSelectedId.value = null;
     editForm.defaults({
         name: hospital.name,
         slug: hospital.slug,
@@ -113,7 +134,54 @@ function updateHospital(): void {
     if (!selected.value) return;
     editForm.patch(`/platform/hospitals/${selected.value.id}`, {
         preserveScroll: true,
+        onError: (errors) => {
+            if (errors.slug || errors.brand_color) {
+                advancedDetails.value?.setAttribute('open', '');
+            }
+        },
     });
+}
+
+function moveToEditor(): void {
+    if (!window.matchMedia('(max-width: 1279px)').matches) return;
+
+    void nextTick(() => {
+        selectedEditor.value?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
+        selectedEditor.value?.focus({ preventScroll: true });
+    });
+}
+
+function selectHospital(hospital: Hospital): void {
+    if (hospital.id === selectedId.value) return;
+
+    if (editForm.isDirty) {
+        pendingSelectedId.value = hospital.id;
+        return;
+    }
+
+    selectedId.value = hospital.id;
+    moveToEditor();
+}
+
+function discardAndSwitch(): void {
+    const nextId = pendingSelectedId.value;
+
+    if (!nextId) return;
+
+    editForm.reset();
+    editForm.clearErrors();
+    pendingSelectedId.value = null;
+    selectedId.value = nextId;
+    moveToEditor();
+}
+
+function discardChanges(): void {
+    editForm.reset();
+    editForm.clearErrors();
+    pendingSelectedId.value = null;
 }
 
 function capabilityLabel(value: Hospital['capability']): string {
@@ -409,13 +477,15 @@ function capabilityLabel(value: Hospital['capability']): string {
                             v-for="hospital in hospitals"
                             :key="hospital.id"
                             type="button"
-                            class="grid w-full gap-3 border-l px-5 py-4 text-left transition hover:bg-slate-50 focus-visible:ring-3 focus-visible:ring-teal-700/20 focus-visible:outline-none sm:grid-cols-[minmax(0,1fr)_auto]"
+                            :aria-pressed="selectedId === hospital.id"
+                            aria-controls="selected-hospital-editor"
+                            class="grid w-full gap-3 px-5 py-4 text-left transition hover:bg-slate-50 focus-visible:ring-3 focus-visible:ring-teal-700/20 focus-visible:outline-none sm:grid-cols-[minmax(0,1fr)_auto]"
                             :class="
                                 selectedId === hospital.id
-                                    ? 'border-l-teal-700 bg-teal-50/40'
-                                    : 'border-l-transparent'
+                                    ? 'bg-teal-50 ring-1 ring-teal-600 ring-inset'
+                                    : 'bg-white'
                             "
-                            @click="selectedId = hospital.id"
+                            @click="selectHospital(hospital)"
                         >
                             <span
                                 ><span class="flex flex-wrap items-center gap-2"
@@ -443,17 +513,26 @@ function capabilityLabel(value: Hospital['capability']): string {
                                     }}</span
                                 ></span
                             >
-                            <span
-                                class="text-xs leading-5 text-slate-500 sm:text-right"
-                                ><span class="block"
+                            <span class="text-xs leading-5 sm:text-right">
+                                <span
+                                    v-if="selectedId === hospital.id"
+                                    class="mb-1 inline-flex items-center gap-1 font-semibold text-teal-800"
+                                >
+                                    <CheckCircle2
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    Editing
+                                </span>
+                                <span class="block text-slate-500"
                                     >{{ hospital.staffCount }} staff</span
-                                ><span class="block"
+                                ><span class="block text-slate-500"
                                     >{{
                                         hospital.submissionCount
                                     }}
                                     submissions</span
-                                ></span
-                            >
+                                >
+                            </span>
                         </button>
                     </div>
                     <div v-else class="p-10 text-center text-sm text-slate-600">
@@ -463,174 +542,346 @@ function capabilityLabel(value: Hospital['capability']): string {
 
                 <form
                     v-if="selected"
+                    id="selected-hospital-editor"
                     class="flex min-w-0 flex-col"
                     @submit.prevent="updateHospital"
                 >
                     <div
-                        class="flex items-start gap-3 border-b border-slate-200 p-5 sm:p-6"
+                        ref="selectedEditor"
+                        tabindex="-1"
+                        class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white p-5 outline-none sm:p-6"
                     >
-                        <ShieldCheck
-                            class="mt-0.5 size-5 text-teal-700"
-                            aria-hidden="true"
-                        />
-                        <div>
-                            <h2 class="font-semibold">Tenant configuration</h2>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">
-                                Platform changes affect routing eligibility and
-                                staff access for this hospital.
+                        <div class="flex min-w-0 items-start gap-3">
+                            <span
+                                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-800"
+                            >
+                                <ShieldCheck
+                                    class="size-5"
+                                    aria-hidden="true"
+                                />
+                            </span>
+                            <div class="min-w-0">
+                                <h2
+                                    class="truncate text-lg font-semibold text-slate-950"
+                                >
+                                    {{ selectedDisplayName }}
+                                </h2>
+                                <p
+                                    class="mt-0.5 truncate text-sm text-slate-600"
+                                >
+                                    {{ selected.name }} · /{{ selected.slug }}
+                                </p>
+                                <p
+                                    class="mt-2 text-sm leading-6 text-slate-600"
+                                >
+                                    Changes affect routing and staff access for
+                                    this hospital only.
+                                </p>
+                            </div>
+                        </div>
+                        <span
+                            class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800"
+                        >
+                            <CheckCircle2 class="size-3.5" aria-hidden="true" />
+                            Selected
+                        </span>
+                    </div>
+
+                    <div
+                        v-if="pendingSelected"
+                        class="border-b border-amber-200 bg-amber-50 p-5 text-amber-950 sm:p-6"
+                        role="alert"
+                    >
+                        <div class="flex items-start gap-3">
+                            <TriangleAlert
+                                class="mt-0.5 size-5 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <div>
+                                <p class="font-semibold">
+                                    Save or discard changes before switching
+                                </p>
+                                <p class="mt-1 text-sm leading-6">
+                                    You are editing {{ selectedDisplayName }}.
+                                    Switching to
+                                    {{
+                                        pendingSelected.brandName ||
+                                        pendingSelected.name
+                                    }}
+                                    would replace the unsaved form values.
+                                </p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        class="bg-amber-900 text-white hover:bg-amber-950"
+                                        @click="discardAndSwitch"
+                                    >
+                                        Discard and switch
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        @click="pendingSelectedId = null"
+                                    >
+                                        Keep editing
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <fieldset
+                            class="grid gap-5 border-b border-slate-200 p-5 sm:grid-cols-2 sm:p-6"
+                        >
+                            <legend class="sr-only">Hospital identity</legend>
+                            <div class="sm:col-span-2">
+                                <h3 class="font-semibold text-slate-950">
+                                    Hospital identity
+                                </h3>
+                                <p
+                                    class="mt-1 text-sm leading-6 text-slate-600"
+                                >
+                                    The details staff and patients use to
+                                    recognise this hospital.
+                                </p>
+                            </div>
+                            <div>
+                                <Label for="edit-name">Registered name</Label
+                                ><Input
+                                    id="edit-name"
+                                    v-model="editForm.name"
+                                    class="mt-2"
+                                /><InputError
+                                    class="mt-1"
+                                    :message="editForm.errors.name"
+                                />
+                            </div>
+                            <div>
+                                <Label for="edit-brand">Display name</Label
+                                ><Input
+                                    id="edit-brand"
+                                    v-model="editForm.brand_name"
+                                    class="mt-2"
+                                /><InputError
+                                    class="mt-1"
+                                    :message="editForm.errors.brand_name"
+                                />
+                            </div>
+                            <div class="sm:col-span-2">
+                                <Label for="edit-address">Address</Label
+                                ><Input
+                                    id="edit-address"
+                                    v-model="editForm.address"
+                                    class="mt-2"
+                                /><InputError
+                                    class="mt-1"
+                                    :message="editForm.errors.address"
+                                />
+                            </div>
+
+                            <details
+                                ref="advancedDetails"
+                                class="group sm:col-span-2"
+                            >
+                                <summary
+                                    class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 outline-none hover:bg-slate-50 focus-visible:ring-3 focus-visible:ring-teal-700/20 [&::-webkit-details-marker]:hidden"
+                                >
+                                    Brand and URL
+                                    <ChevronDown
+                                        class="size-4 transition-transform group-open:rotate-180"
+                                        aria-hidden="true"
+                                    />
+                                </summary>
+                                <div
+                                    class="mt-4 grid gap-5 border-b border-slate-200 pb-1 sm:grid-cols-2"
+                                >
+                                    <div>
+                                        <Label for="edit-slug">URL slug</Label
+                                        ><Input
+                                            id="edit-slug"
+                                            v-model="editForm.slug"
+                                            class="mt-2"
+                                        /><InputError
+                                            class="mt-1"
+                                            :message="editForm.errors.slug"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="edit-colour"
+                                            >Brand colour</Label
+                                        >
+                                        <div
+                                            class="mt-2 flex items-center gap-3"
+                                        >
+                                            <span
+                                                class="size-9 shrink-0 rounded-md border border-slate-300"
+                                                :style="{
+                                                    backgroundColor:
+                                                        brandColorPreview,
+                                                }"
+                                                aria-hidden="true"
+                                            />
+                                            <Input
+                                                id="edit-colour"
+                                                v-model="editForm.brand_color"
+                                                class="uppercase"
+                                            />
+                                        </div>
+                                        <InputError
+                                            class="mt-1"
+                                            :message="
+                                                editForm.errors.brand_color
+                                            "
+                                        />
+                                    </div>
+                                </div>
+                            </details>
+                        </fieldset>
+
+                        <fieldset class="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+                            <legend class="sr-only">Care and access</legend>
+                            <div class="sm:col-span-2">
+                                <h3 class="font-semibold text-slate-950">
+                                    Care and access
+                                </h3>
+                                <p
+                                    class="mt-1 text-sm leading-6 text-slate-600"
+                                >
+                                    Control patient routing and whether the
+                                    hospital workspace can be used.
+                                </p>
+                            </div>
+                            <div>
+                                <Label for="edit-capability">Capability</Label
+                                ><select
+                                    id="edit-capability"
+                                    v-model="editForm.capability"
+                                    class="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                                >
+                                    <option value="ER_CAPABLE">
+                                        Emergency capable
+                                    </option>
+                                    <option value="CLINIC_ONLY">
+                                        Clinic only
+                                    </option>
+                                </select>
+                                <InputError
+                                    class="mt-1"
+                                    :message="editForm.errors.capability"
+                                />
+                            </div>
+                            <div>
+                                <Label for="edit-routing">Routing mode</Label
+                                ><select
+                                    id="edit-routing"
+                                    v-model="editForm.routing_mode"
+                                    class="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                                >
+                                    <option value="AUTO">Automatic</option>
+                                    <option value="MANUAL">Manual</option>
+                                </select>
+                                <InputError
+                                    class="mt-1"
+                                    :message="editForm.errors.routing_mode"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="flex min-h-24 items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-4"
+                                    ><input
+                                        v-model="editForm.accepting_submissions"
+                                        type="checkbox"
+                                        class="mt-0.5 size-5 accent-teal-700"
+                                    /><span
+                                        ><span
+                                            class="block text-sm font-semibold"
+                                            >Accepting submissions</span
+                                        ><span
+                                            class="mt-1 block text-xs leading-5 text-slate-600"
+                                            >Available to eligible
+                                            patients.</span
+                                        ></span
+                                    ></label
+                                ><InputError
+                                    class="mt-1"
+                                    :message="
+                                        editForm.errors.accepting_submissions
+                                    "
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="flex min-h-24 items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-4"
+                                    ><input
+                                        v-model="editForm.is_active"
+                                        type="checkbox"
+                                        class="mt-0.5 size-5 accent-teal-700"
+                                    /><span
+                                        ><span
+                                            class="block text-sm font-semibold"
+                                            >Tenant active</span
+                                        ><span
+                                            class="mt-1 block text-xs leading-5 text-slate-600"
+                                            >Allows staff access and
+                                            routing.</span
+                                        ></span
+                                    ></label
+                                ><InputError
+                                    class="mt-1"
+                                    :message="editForm.errors.is_active"
+                                />
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <footer
+                        class="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                    >
+                        <div class="min-w-0 text-sm" aria-live="polite">
+                            <p class="truncate font-semibold text-slate-900">
+                                {{ selectedDisplayName }}
+                            </p>
+                            <p
+                                :class="
+                                    editForm.recentlySuccessful
+                                        ? 'text-emerald-700'
+                                        : editForm.isDirty
+                                          ? 'text-amber-800'
+                                          : 'text-slate-500'
+                                "
+                            >
+                                {{
+                                    editForm.recentlySuccessful
+                                        ? 'Changes saved.'
+                                        : editForm.isDirty
+                                          ? 'Unsaved changes'
+                                          : 'No unsaved changes'
+                                }}
                             </p>
                         </div>
-                    </div>
-                    <div
-                        class="grid flex-1 content-start gap-5 p-5 sm:grid-cols-2 sm:p-6"
-                    >
-                        <div class="sm:col-span-2">
-                            <Label for="edit-name">Registered name</Label
-                            ><Input
-                                id="edit-name"
-                                v-model="editForm.name"
-                                class="mt-2"
-                            /><InputError
-                                class="mt-1"
-                                :message="editForm.errors.name"
-                            />
-                        </div>
-                        <div>
-                            <Label for="edit-brand">Display name</Label
-                            ><Input
-                                id="edit-brand"
-                                v-model="editForm.brand_name"
-                                class="mt-2"
-                            /><InputError
-                                class="mt-1"
-                                :message="editForm.errors.brand_name"
-                            />
-                        </div>
-                        <div>
-                            <Label for="edit-slug">URL slug</Label
-                            ><Input
-                                id="edit-slug"
-                                v-model="editForm.slug"
-                                class="mt-2"
-                            /><InputError
-                                class="mt-1"
-                                :message="editForm.errors.slug"
-                            />
-                        </div>
-                        <div class="sm:col-span-2">
-                            <Label for="edit-address">Address</Label
-                            ><Input
-                                id="edit-address"
-                                v-model="editForm.address"
-                                class="mt-2"
-                            /><InputError
-                                class="mt-1"
-                                :message="editForm.errors.address"
-                            />
-                        </div>
-                        <div class="sm:col-span-2">
-                            <Label for="edit-colour">Brand colour</Label
-                            ><Input
-                                id="edit-colour"
-                                v-model="editForm.brand_color"
-                                class="mt-2 font-mono uppercase"
-                            /><InputError
-                                class="mt-1"
-                                :message="editForm.errors.brand_color"
-                            />
-                        </div>
-                        <div>
-                            <Label for="edit-capability">Capability</Label
-                            ><select
-                                id="edit-capability"
-                                v-model="editForm.capability"
-                                class="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                        <div class="flex flex-wrap gap-2 sm:justify-end">
+                            <Button
+                                v-if="editForm.isDirty"
+                                type="button"
+                                variant="outline"
+                                @click="discardChanges"
                             >
-                                <option value="ER_CAPABLE">
-                                    Emergency capable
-                                </option>
-                                <option value="CLINIC_ONLY">Clinic only</option>
-                            </select>
-                            <InputError
-                                class="mt-1"
-                                :message="editForm.errors.capability"
-                            />
-                        </div>
-                        <div>
-                            <Label for="edit-routing">Routing mode</Label
-                            ><select
-                                id="edit-routing"
-                                v-model="editForm.routing_mode"
-                                class="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                                Discard
+                            </Button>
+                            <Button
+                                class="bg-teal-700 text-white hover:bg-teal-800"
+                                :disabled="
+                                    editForm.processing || !editForm.isDirty
+                                "
+                                >{{
+                                    editForm.processing
+                                        ? 'Saving…'
+                                        : 'Save changes'
+                                }}</Button
                             >
-                                <option value="AUTO">Automatic</option>
-                                <option value="MANUAL">Manual</option>
-                            </select>
-                            <InputError
-                                class="mt-1"
-                                :message="editForm.errors.routing_mode"
-                            />
                         </div>
-                        <div>
-                            <label
-                                class="flex items-start gap-3 border border-slate-200 bg-slate-50 p-4"
-                                ><input
-                                    v-model="editForm.accepting_submissions"
-                                    type="checkbox"
-                                    class="mt-0.5 size-5 accent-teal-700"
-                                /><span
-                                    ><span class="block text-sm font-semibold"
-                                        >Accepting submissions</span
-                                    ><span
-                                        class="mt-1 block text-xs leading-5 text-slate-600"
-                                        >Available to eligible patients.</span
-                                    ></span
-                                ></label
-                            ><InputError
-                                class="mt-1"
-                                :message="editForm.errors.accepting_submissions"
-                            />
-                        </div>
-                        <div>
-                            <label
-                                class="flex items-start gap-3 border border-slate-200 bg-slate-50 p-4"
-                                ><input
-                                    v-model="editForm.is_active"
-                                    type="checkbox"
-                                    class="mt-0.5 size-5 accent-teal-700"
-                                /><span
-                                    ><span class="block text-sm font-semibold"
-                                        >Tenant active</span
-                                    ><span
-                                        class="mt-1 block text-xs leading-5 text-slate-600"
-                                        >Allows staff access and routing.</span
-                                    ></span
-                                ></label
-                            ><InputError
-                                class="mt-1"
-                                :message="editForm.errors.is_active"
-                            />
-                        </div>
-                    </div>
-                    <footer
-                        class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                    >
-                        <p class="text-sm text-emerald-700" aria-live="polite">
-                            {{
-                                editForm.recentlySuccessful
-                                    ? 'Tenant configuration saved.'
-                                    : ''
-                            }}
-                        </p>
-                        <Button
-                            class="bg-teal-700 text-white hover:bg-teal-800"
-                            :disabled="editForm.processing || !editForm.isDirty"
-                            >{{
-                                editForm.processing
-                                    ? 'Saving…'
-                                    : 'Save tenant configuration'
-                            }}</Button
-                        >
                     </footer>
                 </form>
                 <div

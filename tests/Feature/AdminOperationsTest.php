@@ -69,6 +69,7 @@ class AdminOperationsTest extends TestCase
             $table->string('normalized_phone');
             $table->text('concern')->nullable();
             $table->string('status')->default('NEW');
+            $table->timestamp('phone_verified_at')->nullable();
             $table->timestamps();
         });
 
@@ -228,6 +229,13 @@ class AdminOperationsTest extends TestCase
                 ->where('hospitals.0.id', $hospital->id));
     }
 
+    public function test_super_admin_dashboard_link_redirects_to_the_platform_workspace(): void
+    {
+        $this->actingAs($this->superAdmin())
+            ->get(route('dashboard'))
+            ->assertRedirect(route('platform.index'));
+    }
+
     public function test_super_admin_can_manage_the_consultant_callback_queue(): void
     {
         $superAdmin = $this->superAdmin();
@@ -236,6 +244,7 @@ class AdminOperationsTest extends TestCase
             'normalized_phone' => '+233241234567',
             'concern' => 'A non-urgent question about a headache.',
             'status' => 'NEW',
+            'phone_verified_at' => now(),
         ]);
 
         $this->actingAs($superAdmin)
@@ -244,7 +253,8 @@ class AdminOperationsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('platform/ConsultantRequests')
                 ->where('counts.new', 1)
-                ->where('requests.data.0.id', $consultantRequest->getKey()));
+                ->where('requests.data.0.id', $consultantRequest->getKey())
+                ->where('requests.data.0.phoneVerifiedAt', fn (mixed $value): bool => is_string($value)));
 
         $this->actingAs($superAdmin)
             ->patch(route('platform.consultant-requests.update', $consultantRequest), [

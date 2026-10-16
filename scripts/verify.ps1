@@ -22,7 +22,8 @@ function Invoke-VerificationCommand {
 Push-Location $projectRoot
 
 try {
-    Invoke-VerificationCommand 'Frontend checks' { npm run check -- resources/js }
+    Invoke-VerificationCommand 'Frontend formatting check' { npx vp fmt --check resources/js }
+    Invoke-VerificationCommand 'Frontend lint checks' { npm run check -- --no-fmt resources/js }
     Invoke-VerificationCommand 'Frontend type checks' { npm run types:check }
     Invoke-VerificationCommand 'PHP formatting check' { composer run lint:check }
     Invoke-VerificationCommand 'PHP static analysis' { composer run types:check }

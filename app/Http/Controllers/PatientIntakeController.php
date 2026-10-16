@@ -11,14 +11,18 @@ use App\Http\Requests\Intake\StoreHistoryRequest;
 use App\Http\Requests\Intake\StoreIdentityRequest;
 use App\Http\Requests\Intake\StoreProfileRequest;
 use App\Http\Requests\Intake\StoreVisitRequest;
+use App\Http\Requests\Intake\VerifyPhoneRequest;
 use App\Models\Patient;
 use App\Models\Visit;
 use App\Services\Assessment\InitialConcernSafetyScreener;
 use App\Services\Routing\ManualLocationGeocoder;
+use App\Services\Verification\PhoneVerificationService;
 use App\Support\PatientAge;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,16 +54,24 @@ class PatientIntakeController extends Controller
         ]);
     }
 
-    public function lookup(LookupPatientRequest $request): RedirectResponse
-    {
+    public function lookup(
+        LookupPatientRequest $request,
+        PhoneVerificationService $verification,
+    ): RedirectResponse {
         $phone = (string) $request->validated('phone_number');
-        $patient = Patient::query()->where('normalized_phone', $phone)->first();
         $walkInHospitalId = $request->session()->get('intake.preselected_hospital_id');
         $arrivalType = $request->session()->get('intake.arrival_type');
+        $chatHandoff = $request->session()->get('intake.chat_handoff');
 
         $request->session()->forget('intake');
         $request->session()->forget(['active_visit_reference', 'assessment_red_flags']);
-        $request->session()->put('intake.phone', $phone);
+        $issued = $verification->issue($phone);
+        $request->session()->put('intake.pending_phone_verification', $issued['challenge']);
+        $request->session()->put('intake.streamlined', $request->boolean('streamlined'));
+
+        if (is_string($issued['demo_code'])) {
+            $request->session()->put('intake.demo_verification_code', $issued['demo_code']);
+        }
 
         if (is_string($walkInHospitalId) && $walkInHospitalId !== '') {
             $request->session()->put('intake.preselected_hospital_id', $walkInHospitalId);
@@ -69,13 +81,114 @@ class PatientIntakeController extends Controller
             $request->session()->put('intake.arrival_type', $arrivalType);
         }
 
+        if (is_array($chatHandoff) && is_string($chatHandoff['main_complaint'] ?? null)) {
+            $request->session()->put('intake.chat_handoff', $chatHandoff);
+        }
+
+        return to_route('intake.phone.verify');
+    }
+
+    public function verifyPhone(Request $request): Response|RedirectResponse
+    {
+        $challenge = $request->session()->get('intake.pending_phone_verification');
+
+        if (! is_array($challenge) || ! is_string($challenge['phone'] ?? null)) {
+            return to_route('intake.start');
+        }
+
+        return Inertia::render('intake/VerifyPhone', [
+            'phoneNumber' => $this->maskPhone($challenge['phone']),
+            'expiresAt' => $challenge['expires_at'] ?? null,
+            'demoCode' => $request->session()->get('intake.demo_verification_code'),
+            'status' => $request->session()->get('status'),
+        ]);
+    }
+
+    public function confirmPhone(
+        VerifyPhoneRequest $request,
+        PhoneVerificationService $verification,
+    ): RedirectResponse {
+        $challenge = $request->session()->get('intake.pending_phone_verification');
+
+        if (! is_array($challenge) || ! is_string($challenge['phone'] ?? null)) {
+            return to_route('intake.start');
+        }
+
+        $maxAttempts = (int) config('medipath.phone_verification.max_attempts', 5);
+        $attempts = (int) ($challenge['attempts'] ?? 0);
+
+        if ($verification->isExpired($challenge)) {
+            throw ValidationException::withMessages([
+                'code' => 'This code has expired. Request a new code and try again.',
+            ]);
+        }
+
+        if ($attempts >= $maxAttempts) {
+            throw ValidationException::withMessages([
+                'code' => 'Too many incorrect attempts. Request a new code.',
+            ]);
+        }
+
+        if (! $verification->matches($challenge, (string) $request->validated('code'))) {
+            $challenge['attempts'] = $attempts + 1;
+            $request->session()->put('intake.pending_phone_verification', $challenge);
+
+            throw ValidationException::withMessages([
+                'code' => $challenge['attempts'] >= $maxAttempts
+                    ? 'Too many incorrect attempts. Request a new code.'
+                    : 'That code is not correct. Check the message and try again.',
+            ]);
+        }
+
+        $phone = $challenge['phone'];
+        $patient = Patient::query()->where('normalized_phone', $phone)->first();
+        $streamlined = $request->session()->get('intake.streamlined') === true;
+
+        $request->session()->forget([
+            'intake.pending_phone_verification',
+            'intake.demo_verification_code',
+            'intake.streamlined',
+        ]);
+        $request->session()->put('intake.phone', $phone);
+
         if ($patient) {
             $request->session()->put('intake.patient_id', $patient->getKey());
         }
 
-        return $request->boolean('streamlined')
-            ? to_route('intake.start')
-            : to_route('intake.identity');
+        $request->session()->regenerate();
+
+        return $streamlined ? to_route('intake.start') : to_route('intake.identity');
+    }
+
+    public function resendPhoneCode(
+        Request $request,
+        PhoneVerificationService $verification,
+    ): RedirectResponse {
+        $challenge = $request->session()->get('intake.pending_phone_verification');
+
+        if (! is_array($challenge) || ! is_string($challenge['phone'] ?? null)) {
+            return to_route('intake.start');
+        }
+
+        $sentAt = isset($challenge['sent_at']) && is_string($challenge['sent_at'])
+            ? CarbonImmutable::parse($challenge['sent_at'])
+            : null;
+        $cooldown = (int) config('medipath.phone_verification.resend_cooldown_seconds', 60);
+
+        if ($sentAt?->addSeconds($cooldown)->isFuture()) {
+            throw ValidationException::withMessages([
+                'resend' => 'Please wait a moment before requesting another code.',
+            ]);
+        }
+
+        $issued = $verification->issue($challenge['phone']);
+        $request->session()->put('intake.pending_phone_verification', $issued['challenge']);
+
+        if (is_string($issued['demo_code'])) {
+            $request->session()->put('intake.demo_verification_code', $issued['demo_code']);
+        }
+
+        return to_route('intake.phone.verify')->with('status', 'A new verification code is ready.');
     }
 
     public function storeProfile(StoreProfileRequest $request): RedirectResponse
@@ -259,9 +372,17 @@ class PatientIntakeController extends Controller
         }
 
         $identity = $request->session()->get('intake.identity');
+        $visit = $request->session()->get('intake.visit');
+        $chatHandoff = $request->session()->get('intake.chat_handoff');
+
+        if (! is_array($visit)
+            && is_array($chatHandoff)
+            && is_string($chatHandoff['main_complaint'] ?? null)) {
+            $visit = ['main_complaint' => $chatHandoff['main_complaint']];
+        }
 
         return Inertia::render('intake/Visit', [
-            'visit' => $request->session()->get('intake.visit'),
+            'visit' => $visit,
             'sexAtBirth' => is_array($identity) ? ($identity['sex_at_birth'] ?? null) : null,
             'patientAge' => PatientAge::fromDateOfBirth(
                 is_array($identity) ? ($identity['date_of_birth'] ?? null) : null,
@@ -276,6 +397,7 @@ class PatientIntakeController extends Controller
     ): RedirectResponse {
         $visitData = $this->resolveLocation($request->validated(), $geocoder);
         $request->session()->put('intake.visit', $visitData);
+        $request->session()->forget('intake.chat_handoff');
 
         if ($request->boolean('streamlined')) {
             return $this->persistIntake($request, 'assessment.ready', $safetyScreener);

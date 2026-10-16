@@ -4,7 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $phone_verified_at
+ */
 class ConsultantRequest extends Model
 {
     use HasUuids;
@@ -13,5 +17,13 @@ class ConsultantRequest extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['name', 'normalized_phone', 'concern', 'status'];
+    protected $fillable = ['name', 'normalized_phone', 'concern', 'status', 'phone_verified_at'];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'phone_verified_at' => 'immutable_datetime',
+        ];
+    }
 }

@@ -125,15 +125,23 @@ const findNearbyHospital = (): void => {
         <div class="bg-[#c53f52] px-6 py-8 text-white sm:px-8 sm:py-10">
             <div class="flex items-start gap-4">
                 <ShieldAlert class="mt-1 size-8 shrink-0" aria-hidden="true" />
-                <div>
+                <div class="min-w-0">
                     <h1
                         class="max-w-xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl"
                     >
-                        Get emergency help now
+                        <template v-if="emergencyContact.phone">
+                            Call {{ emergencyContact.phone }} now
+                        </template>
+                        <template v-else>
+                            Call emergency services now
+                        </template>
                     </h1>
-                    <p class="mt-3 max-w-2xl leading-7 text-[#fff0f2]">
-                        If someone may be in immediate danger, do not wait for
-                        an AI assessment or complete the intake form.
+                    <p
+                        id="call-first-guidance"
+                        class="mt-3 max-w-2xl leading-7 text-[#fff0f2]"
+                    >
+                        If someone may be in immediate danger, call before using
+                        MediPath’s facility finder or intake.
                     </p>
                 </div>
             </div>
@@ -141,12 +149,27 @@ const findNearbyHospital = (): void => {
             <a
                 v-if="emergencyContact.phone"
                 :href="`tel:${emergencyContact.phone}`"
-                class="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-md bg-white px-5 py-3 font-semibold text-[#8a2637] outline-none hover:bg-[#fff0f2] focus-visible:ring-3 focus-visible:ring-white/60 sm:w-auto"
+                aria-describedby="call-first-guidance"
+                class="mt-7 inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-md bg-white px-6 py-4 text-lg font-semibold text-[#8a2637] outline-none hover:bg-[#fff0f2] focus-visible:ring-3 focus-visible:ring-white/60 sm:w-auto"
             >
-                <PhoneCall class="size-5" aria-hidden="true" />
-                Call {{ emergencyContact.phone }} for
-                {{ emergencyContact.label }}
+                <PhoneCall class="size-6" aria-hidden="true" />
+                Call {{ emergencyContact.phone }} now
             </a>
+            <p class="mt-4 max-w-2xl text-sm leading-6 text-[#fff0f2]">
+                {{ emergencyContact.label }}. If you cannot make the call, ask
+                someone nearby to call.
+            </p>
+        </div>
+
+        <div class="border-b border-slate-200 bg-white px-6 py-6 sm:px-8">
+            <h2 class="text-xl font-semibold text-slate-950">
+                While help is on the way
+            </h2>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Use the location and facility tools only after
+                {{ emergencyNumber }} has been called, or while another person
+                is making the call.
+            </p>
         </div>
 
         <div class="grid lg:grid-cols-[0.9fr_1.1fr]">
@@ -196,23 +219,6 @@ const findNearbyHospital = (): void => {
                 >
                     {{ locationError }}
                 </p>
-
-                <div class="mt-7 border-t border-slate-200 pt-6">
-                    <h2 class="font-semibold text-slate-950">
-                        Not an immediate emergency?
-                    </h2>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">
-                        Continue with the guided intake for urgency guidance and
-                        hospital matching. It does not provide a diagnosis.
-                    </p>
-                    <Link
-                        href="/intake"
-                        class="mt-4 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-teal-700 outline-none hover:text-teal-800 focus-visible:ring-3 focus-visible:ring-teal-700/25"
-                    >
-                        Start guided intake
-                        <ArrowRight class="size-4" aria-hidden="true" />
-                    </Link>
-                </div>
             </div>
 
             <div class="bg-slate-50 p-6 sm:p-8">
@@ -315,6 +321,26 @@ const findNearbyHospital = (): void => {
                     instructions from {{ emergencyNumber }}.
                 </p>
             </div>
+        </div>
+
+        <div
+            class="flex flex-col gap-4 border-t border-slate-200 bg-white p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+        >
+            <div>
+                <h2 class="font-semibold text-slate-950">
+                    Not an immediate emergency?
+                </h2>
+                <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                    Continue with the guided intake for urgency guidance and
+                    hospital matching. It does not provide a diagnosis.
+                </p>
+            </div>
+            <Button as-child variant="outline" class="h-11 shrink-0">
+                <Link href="/intake">
+                    Start guided intake
+                    <ArrowRight class="size-4" aria-hidden="true" />
+                </Link>
+            </Button>
         </div>
     </section>
 </template>

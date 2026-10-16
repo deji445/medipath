@@ -13,4 +13,5 @@ enum AssessmentReasonCode: string
     case PersistentSymptoms = 'PERSISTENT_SYMPTOMS';
     case AbnormalVitalSignsReported = 'ABNORMAL_VITAL_SIGNS_REPORTED';
     case InconclusiveAfterQuestionLimit = 'INCONCLUSIVE_AFTER_QUESTION_LIMIT';
+    case AssessmentServiceUnavailable = 'ASSESSMENT_SERVICE_UNAVAILABLE';
 }

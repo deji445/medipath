@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, CircleAlert, Phone, Stethoscope } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 
@@ -58,6 +58,24 @@ defineProps<{
                 </div>
             </div>
 
+            <Form
+                action="/intake/assessment/result/recover"
+                method="post"
+                class="mt-7"
+                v-slot="{ processing }"
+            >
+                <Button type="submit" class="w-full" :disabled="processing">
+                    {{
+                        processing ? 'Preparing guidance…' : 'Use saved answers'
+                    }}
+                </Button>
+                <p class="mt-2 text-center text-sm leading-6 text-slate-600">
+                    MediPath will show cautious next-step guidance from the
+                    information already provided. You will not need to answer
+                    the question again.
+                </p>
+            </Form>
+
             <div
                 class="mt-7 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-950"
             >
@@ -74,7 +92,7 @@ defineProps<{
                 </a>
             </div>
 
-            <Button as-child variant="outline" class="mt-7 w-full">
+            <Button as-child variant="outline" class="mt-4 w-full">
                 <Link href="/">
                     <ArrowLeft class="size-4" aria-hidden="true" />
                     Return to the MediPath home page

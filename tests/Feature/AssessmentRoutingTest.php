@@ -334,6 +334,75 @@ class AssessmentRoutingTest extends TestCase
         ]);
     }
 
+    public function test_gemini_conversation_uses_safe_guidance_when_the_provider_is_unavailable(): void
+    {
+        config()->set('medipath.assessment.driver', 'gemini');
+        $this->app->instance(AssessmentConversationProvider::class, new class implements AssessmentConversationProvider
+        {
+            public function nextTurn(
+                Visit $visit,
+                array $answers,
+                array $questions,
+                string $idempotencyKey,
+                bool $mustComplete = false,
+            ): AssessmentConversationTurn {
+                throw new AssessmentUnavailableException('GEMINI_CONNECTION_FAILED');
+            }
+
+            public function model(): string
+            {
+                return 'gemini-unavailable-test';
+            }
+        });
+
+        $visit = $this->createVisit();
+
+        $this->withSession(['active_visit_reference' => $visit->getKey()])
+            ->post('/intake/assessment', [
+                'question_key' => 'ai_1',
+                'answer' => 'It began yesterday and is getting worse.',
+            ])->assertRedirect('/intake/assessment/result');
+
+        $this->assertDatabaseHas('assessments', [
+            'visit_id' => $visit->getKey(),
+            'status' => 'COMPLETE',
+            'severity' => 'MEDIUM',
+            'recommended_action' => 'SEEK_CARE_SOON',
+            'provider_model' => 'gemini-unavailable-test-safe-fallback',
+            'question_count' => 1,
+            'error_code' => 'GEMINI_CONNECTION_FAILED',
+        ]);
+
+        $this->assertSame(
+            ['ASSESSMENT_SERVICE_UNAVAILABLE'],
+            $visit->fresh('assessment')->assessment->reason_codes,
+        );
+    }
+
+    public function test_a_failed_conversation_can_recover_using_its_saved_answers(): void
+    {
+        config()->set('medipath.assessment.driver', 'gemini');
+        $visit = $this->createVisit(['ai_1' => 'It began yesterday and is getting worse.']);
+        $visit->assessment()->update([
+            'status' => 'FAILED',
+            'provider_model' => 'gemini-legacy-test',
+            'error_code' => 'GEMINI_CONNECTION_FAILED',
+        ]);
+
+        $this->withSession(['active_visit_reference' => $visit->getKey()])
+            ->post('/intake/assessment/result/recover')
+            ->assertRedirect('/intake/assessment/result');
+
+        $this->assertDatabaseHas('assessments', [
+            'visit_id' => $visit->getKey(),
+            'status' => 'COMPLETE',
+            'severity' => 'MEDIUM',
+            'recommended_action' => 'SEEK_CARE_SOON',
+            'question_count' => 1,
+            'error_code' => 'GEMINI_CONNECTION_FAILED',
+        ]);
+    }
+
     public function test_gemini_conversation_stops_at_ten_questions_when_the_provider_requests_more(): void
     {
         config()->set([

@@ -12,6 +12,8 @@ The primary users are patients in Ghana and companions or caregivers completing 
 
 Secondary users are hospital admissions staff, triage nurses, doctors, hospital administrators, and the internal MediPath Super Admin. Hospital staff need to see incoming cases quickly, understand the patient's history and urgency, and manage each hospital's routing and operating preferences.
 
+The public landing experience is patient-first. Staff enter through a separate staff landing page that explains the appropriate workspace before authentication; the patient homepage must not read as a three-audience portal.
+
 ## Product Purpose
 
 MediPath moves basic history-taking and symptom intake ahead of hospital arrival. It collects patient identity, medical history, medications, symptoms, optional vitals, location, and consent; produces safe triage guidance rather than a diagnosis; helps the patient select an appropriate facility; and sends a structured summary to that hospital.

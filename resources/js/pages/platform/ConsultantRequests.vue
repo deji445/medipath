@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Clock3, MessageSquareText, PhoneCall } from '@lucide/vue';
+import {
+    CircleAlert,
+    Clock3,
+    MessageSquareText,
+    PhoneCall,
+    ShieldCheck,
+} from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 
 type ConsultantRequest = {
@@ -9,6 +15,7 @@ type ConsultantRequest = {
     phone: string;
     concern: string | null;
     status: 'NEW' | 'CONTACTED' | 'CLOSED';
+    phoneVerifiedAt: string | null;
     createdAt: string | null;
     updatedAt: string | null;
 };
@@ -150,6 +157,30 @@ function pageLabel(value: string): string {
                                 item.phone
                             }}</a
                         >
+                        <p
+                            class="mt-2 flex items-center gap-1.5 text-xs font-medium"
+                            :class="
+                                item.phoneVerifiedAt
+                                    ? 'text-emerald-700'
+                                    : 'text-amber-700'
+                            "
+                        >
+                            <ShieldCheck
+                                v-if="item.phoneVerifiedAt"
+                                class="size-3.5"
+                                aria-hidden="true"
+                            />
+                            <CircleAlert
+                                v-else
+                                class="size-3.5"
+                                aria-hidden="true"
+                            />
+                            {{
+                                item.phoneVerifiedAt
+                                    ? 'Phone verified'
+                                    : 'Legacy unverified request'
+                            }}
+                        </p>
                         <p
                             v-if="item.concern"
                             class="mt-3 flex max-w-3xl gap-2 text-sm leading-6 text-slate-700"

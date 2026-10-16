@@ -1,17 +1,38 @@
-name: tests
+name: MediPath verification
 
 on:
   push:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: medipath-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  APP_ENV: testing
+  APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  APP_DEBUG: 'false'
+  APP_URL: http://localhost
+  APP_LOCALE: en
+  CACHE_STORE: array
+  SESSION_DRIVER: array
+  QUEUE_CONNECTION: sync
+  MAIL_MAILER: array
+  MEDIPATH_ASSESSMENT_DRIVER: deterministic
+  MEDIPATH_PHONE_VERIFICATION_DRIVER: local
+  MEDIPATH_GEOCODING_ENABLED: 'false'
+
 jobs:
-  ci:
+  application-quality:
+    name: Application quality and tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -23,6 +44,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.3'
+          extensions: mbstring, pdo_sqlite
           tools: composer:v2
           coverage: none
 
@@ -30,9 +52,94 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+          cache: npm
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Run CI Checks
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run formatting, lint, type, and application tests
         run: composer ci:check
+
+      - name: Build production assets
+        run: npm run build
+
+  clinical-safety:
+    name: Clinical safety benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run emergency and AI safety gates
+        run: composer safety:benchmark
+
+  postgres-contracts:
+    name: Fresh PostgreSQL schema contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: medipath_ci
+          POSTGRES_USER: medipath_ci
+          POSTGRES_PASSWORD: medipath_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medipath_ci -d medipath_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: medipath_ci
+      DB_USERNAME: medipath_ci
+      DB_PASSWORD: medipath_ci_password
+      DATABASE_URL: postgresql://medipath_ci:medipath_ci_password@127.0.0.1:5432/medipath_ci
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_pgsql
+          tools: composer:v2
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Apply migrations and seed reference hospitals
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Run PostgreSQL contract tests
+        shell: pwsh
+        run: ./scripts/db-test.ps1 -DatabaseUrl $env:DATABASE_URL

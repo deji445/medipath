@@ -45,6 +45,18 @@ The PostgreSQL schema is defined in `database/migrations/001_initial_schema.sql`
 
 Use `scripts/db-setup.ps1` for direct local SQL setup and `scripts/db-test.ps1` for schema contract tests.
 
+## Patient phone verification
+
+Development uses the local verification driver by default. For real Ghanaian
+SMS delivery, set `MEDIPATH_PHONE_VERIFICATION_DRIVER=bms` and configure the
+BMS endpoint, API key, and the exact approved sender ID. The current approved
+sender ID is lowercase `medipath`; sender IDs are case-sensitive.
+
+MediPath sends verification codes as BMS OTP campaigns. BMS charges these
+campaigns to the account's GHS main wallet rather than its ordinary SMS bundle,
+so the wallet must retain a positive balance. A funded SMS bundle alone is not
+sufficient for `sms_type: otp` requests.
+
 ## Verification
 
 After installing Composer and Node dependencies, configuring `.env.local`, and starting the local PostgreSQL instance, run the full submission check from a normal Windows PowerShell terminal:
@@ -61,9 +73,33 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -DatabaseUrl "postgr
 
 Run this outside restricted execution environments so Vite can start its required Windows native processes and the database contract tests can connect to local PostgreSQL.
 
+### Continuous integration
+
+The **MediPath verification** GitHub Actions workflow runs for every pull
+request, every push to `main`, and on manual request. It has three independent
+gates:
+
+- application formatting, lint, static analysis, tests, and production build;
+- the deterministic clinical-safety benchmark;
+- migrations, reference seeders, and SQL contract tests against a fresh
+  PostgreSQL 17 database.
+
+The workflow uses isolated test credentials. It does not require Gemini, SMS,
+or deployment secrets. The principal checks can also be run locally with
+`composer ci:check`, `composer safety:benchmark`, and `npm run build`.
+
 ## Deployment
 
 Use [the deployment checklist](docs/deployment-checklist.md) to configure a
 PHP-capable host, managed PostgreSQL, HTTPS, secrets, backups, health checks,
 and rollback. Run `powershell -ExecutionPolicy Bypass -File
 scripts/deploy-check.ps1` before creating a release.
+
+For the final presentation, follow the repeatable
+[demonstration script](docs/demo-script.md). It covers real OTP verification
+with a presenter-controlled phone, a normal consented hospital submission, the
+receiving admissions queue, and deterministic emergency interruption.
+
+The latest [patient-journey accessibility audit](docs/accessibility-audit.md)
+records the measured mobile, contrast, semantic-structure, and theming work
+remaining before the final presentation.

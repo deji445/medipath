@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { ClipboardList, ShieldCheck, Users } from '@lucide/vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import CareRibbon from '@/components/CareRibbon.vue';
+import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import { home } from '@/routes';
 
 defineProps<{
@@ -82,6 +83,9 @@ defineProps<{
         <main
             class="relative isolate flex min-h-svh items-center justify-center overflow-hidden p-6 sm:p-10"
         >
+            <LanguageSwitch
+                class="absolute top-5 right-5 z-20 sm:top-7 sm:right-7"
+            />
             <CareRibbon
                 :interactive="false"
                 :scroll-responsive="false"

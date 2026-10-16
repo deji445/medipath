@@ -7,17 +7,73 @@ use App\Enums\RecommendedAction;
 use App\Enums\RedFlagCode;
 use App\Enums\SeverityLevel;
 use App\Models\Visit;
+use App\Services\Ai\AiCircuitBreaker;
+use App\Services\Ai\AiCircuitOpenException;
+use App\Services\Ai\AiRequestRecorder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use JsonException;
+use Throwable;
 
 final class GeminiAssessmentProvider implements AssessmentProvider
 {
-    public function __construct(private readonly AssessmentInputBuilder $inputBuilder) {}
+    public function __construct(
+        private readonly AssessmentInputBuilder $inputBuilder,
+        private readonly AiRequestRecorder $requestRecorder,
+        private readonly AiCircuitBreaker $circuitBreaker,
+    ) {}
 
     public function assess(Visit $visit, array $answers, string $idempotencyKey): AssessmentResult
     {
+        $startedAt = hrtime(true);
+        $attemptCount = 0;
+
+        try {
+            $this->circuitBreaker->beforeRequest();
+            $result = $this->performAssessment($visit, $answers, $idempotencyKey, $attemptCount);
+            $this->circuitBreaker->recordSuccess();
+            $this->requestRecorder->record(
+                'structured_assessment',
+                $this->model(),
+                'SUCCEEDED',
+                $startedAt,
+                $attemptCount,
+            );
+
+            return $result;
+        } catch (Throwable $exception) {
+            $errorCode = match (true) {
+                $exception instanceof AiCircuitOpenException => $exception->getMessage(),
+                $exception instanceof AssessmentUnavailableException => $exception->errorCode,
+                default => 'GEMINI_UNEXPECTED_FAILURE',
+            };
+
+            $this->circuitBreaker->recordFailure($errorCode);
+            $this->requestRecorder->record(
+                'structured_assessment',
+                $this->model(),
+                'FAILED',
+                $startedAt,
+                $attemptCount,
+                $errorCode,
+            );
+
+            if ($exception instanceof AiCircuitOpenException) {
+                throw new AssessmentUnavailableException($errorCode, $exception);
+            }
+
+            throw $exception;
+        }
+    }
+
+    /** @param array<string, string> $answers */
+    private function performAssessment(
+        Visit $visit,
+        array $answers,
+        string $idempotencyKey,
+        int &$attemptCount,
+    ): AssessmentResult {
         $apiKey = (string) config('medipath.assessment.gemini.api_key');
 
         if ($apiKey === '') {
@@ -28,6 +84,8 @@ final class GeminiAssessmentProvider implements AssessmentProvider
         $lastError = new AssessmentUnavailableException('GEMINI_UNAVAILABLE');
 
         for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $attemptCount = $attempt;
+
             try {
                 $response = Http::acceptJson()
                     ->asJson()
@@ -178,12 +236,18 @@ final class GeminiAssessmentProvider implements AssessmentProvider
 
     private function systemInstruction(): string
     {
-        return <<<'PROMPT'
+        $languageInstruction = app()->getLocale() === 'tw'
+            ? 'Write symptom_summary only in clear, natural Ghanaian Twi. Keep precise clinical terms in familiar English parentheses when that improves safety. Keep enum codes unchanged.'
+            : 'Write symptom_summary in clear English.';
+
+        return <<<PROMPT
 You are MediPath's medical intake assistant for a dummy-data prototype. Use only facts in the supplied JSON.
 
 Return the required JSON result only. Never diagnose a condition, prescribe or change medication, give a numeric probability, claim the patient is safe, invent facts, or mention hospital availability. Assign exactly one severity and its required action. HIGH maps to SEEK_EMERGENCY_CARE_NOW, MEDIUM to SEEK_CARE_SOON, and LOW to ROUTINE_CARE_OR_SELF_CARE.
 
 The deterministic emergency screen has already run, but you must still report a known red-flag code if the supplied information indicates it. If information is contradictory or insufficient, use MEDIUM and SEEK_CARE_SOON. Use a short factual plain-text summary with no diagnosis, Markdown, or HTML. Use only the reason and red-flag codes allowed by the schema.
+
+{$languageInstruction}
 PROMPT;
     }
 

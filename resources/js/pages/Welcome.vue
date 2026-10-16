@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { gsap } from 'gsap';
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
@@ -8,17 +8,27 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
     ArrowRight,
     Bot,
+    CheckCircle2,
     ClipboardCheck,
     Headphones,
     Hospital,
     MessageCircle,
+    MapPin,
+    Mic,
+    MicOff,
+    LockKeyhole,
+    PhoneCall,
     RotateCcw,
+    RotateCw,
     Send,
     ShieldCheck,
     Siren,
     Stethoscope,
+    Volume2,
+    VolumeX,
 } from '@lucide/vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +36,7 @@ import InputError from '@/components/InputError.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard, login } from '@/routes';
 import {
+    computed,
     nextTick,
     onBeforeUnmount,
     onMounted,
@@ -37,19 +48,143 @@ import {
 type ChatMessage = {
     role: 'user' | 'assistant';
     content: string;
+    emergency?: boolean;
+    red_flags?: string[];
+    first_aid_steps?: string[];
 };
+
+type SpeechResultEvent = {
+    resultIndex: number;
+    results: {
+        length: number;
+        [index: number]: {
+            isFinal: boolean;
+            0: { transcript: string };
+        };
+    };
+};
+
+type SpeechRecognitionErrorEvent = {
+    error?: string;
+};
+
+type SpeechRecognitionInstance = {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start: () => void;
+    stop: () => void;
+    abort: () => void;
+    onresult: ((event: SpeechResultEvent) => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+    onend: (() => void) | null;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
 const props = defineProps<{
     chatMessages: ChatMessage[];
+    emergencyContact: {
+        label: string;
+        phone: string;
+    };
     consultantRequestReference?: string | null;
+    callbackVerification?: {
+        phoneNumber: string;
+        expiresAt?: string | null;
+        demoCode?: string | null;
+        status?: string | null;
+    } | null;
 }>();
 
+const page = usePage();
+const staffWorkspaceHref = computed(() => {
+    const user = page.props.auth.user;
+
+    if (!user) return login();
+
+    return user.role === 'SUPER_ADMIN' ? '/platform' : dashboard();
+});
+const staffWorkspaceLabel = computed(() => {
+    const user = page.props.auth.user;
+
+    if (!user) return 'Staff login';
+
+    return user.role === 'SUPER_ADMIN'
+        ? 'Hospital network'
+        : 'Admissions dashboard';
+});
+const staffWorkspaceActionLabel = computed(() => {
+    const user = page.props.auth.user;
+
+    if (!user) return 'Open staff workspace';
+
+    return user.role === 'SUPER_ADMIN'
+        ? 'Open hospital network'
+        : 'Open admissions dashboard';
+});
 const pageRoot = useTemplateRef<HTMLElement>('pageRoot');
 const heroScene = useTemplateRef<HTMLElement>('heroScene');
 const consultPanel = useTemplateRef<HTMLElement>('consultPanel');
 const chatHistory = useTemplateRef<HTMLElement>('chatHistory');
 const chatDraft = ref('');
+const visibleChatMessages = ref<ChatMessage[]>([...props.chatMessages]);
+const chatError = ref('');
+const chatProcessing = ref(false);
+const receivingChatText = ref(false);
+const browserSpeechInputSupported = ref(false);
+const browserSpeechOutputSupported = ref(false);
+const isListening = ref(false);
+const speechInputStatus = ref('');
+const speakingMessageIndex = ref<number | null>(null);
+const emergencyPhone = ref(props.emergencyContact.phone);
+const isTwiLocale = computed(() => page.props.localization.current === 'tw');
+const speechInputSupported = computed(
+    () => browserSpeechInputSupported.value && !isTwiLocale.value,
+);
+const speechOutputSupported = computed(
+    () => browserSpeechOutputSupported.value && !isTwiLocale.value,
+);
+const speechInputUnavailableMessage = computed(() =>
+    isTwiLocale.value
+        ? 'Yɛda so resɔ Twi nne no ahwɛ. Kyerɛw wo nkra no seesei.'
+        : 'Voice input is not available in this browser. You can keep typing.',
+);
+const readAloudUnavailableMessage = computed(() =>
+    isTwiLocale.value
+        ? 'Yɛda so resɔ Twi nne no ahwɛ. Fa akenkan di dwuma seesei.'
+        : 'Read aloud is not available in this browser.',
+);
+const emergencyActive = computed(() =>
+    visibleChatMessages.value.some((message) => message.emergency === true),
+);
+const canContinueFromChat = computed(
+    () =>
+        !emergencyActive.value &&
+        visibleChatMessages.value.some((message) => message.role === 'user'),
+);
+const callbackConcernPrefill = computed(() =>
+    visibleChatMessages.value
+        .filter((message) => message.role === 'user')
+        .map((message) => message.content.trim())
+        .filter(Boolean)
+        .join(' ')
+        .slice(0, 1000),
+);
+const callbackCodeExpiry = computed(() => {
+    if (!props.callbackVerification?.expiresAt) {
+        return 'The code expires shortly.';
+    }
+
+    return `The code expires at ${new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+    }).format(new Date(props.callbackVerification.expiresAt))}.`;
+});
 let motionContext: gsap.Context | undefined;
+let recognition: SpeechRecognitionInstance | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+let receivedSpeech = false;
 
 const activeConsultTab = ref<'ai' | 'human'>(
     typeof window !== 'undefined' &&
@@ -78,6 +213,297 @@ const journey = [
 
 function prefersReducedMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function csrfToken(): string {
+    return (
+        document
+            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? ''
+    );
+}
+
+async function readJson(response: Response): Promise<Record<string, unknown>> {
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (!contentType.includes('application/json')) return {};
+
+    return (await response.json()) as Record<string, unknown>;
+}
+
+function responseError(data: Record<string, unknown>): string {
+    const errors = data.errors;
+
+    if (errors && typeof errors === 'object' && 'message' in errors) {
+        const messages = (errors as { message?: unknown }).message;
+
+        if (Array.isArray(messages) && typeof messages[0] === 'string') {
+            return messages[0];
+        }
+    }
+
+    return typeof data.message === 'string'
+        ? data.message
+        : 'The AI consultant could not respond. Please try again.';
+}
+
+function stopSpeech(): void {
+    if (!speechOutputSupported.value) return;
+
+    window.speechSynthesis.cancel();
+    activeUtterance = null;
+    speakingMessageIndex.value = null;
+}
+
+function messageToSpeechText(message: ChatMessage): string {
+    const firstAid = message.first_aid_steps ?? [];
+
+    if (firstAid.length === 0) return message.content;
+
+    return `${message.content} While help is on the way. ${firstAid.join(' ')}`;
+}
+
+function toggleMessageSpeech(message: ChatMessage, index: number): void {
+    if (!speechOutputSupported.value) return;
+
+    if (speakingMessageIndex.value === index) {
+        stopSpeech();
+        return;
+    }
+
+    stopSpeech();
+
+    const utterance = new SpeechSynthesisUtterance(
+        messageToSpeechText(message),
+    );
+    const voices = window.speechSynthesis.getVoices();
+
+    utterance.lang = 'en-GH';
+    utterance.rate = 0.95;
+    utterance.voice =
+        voices.find((voice) => voice.lang.toLowerCase() === 'en-gh') ??
+        voices.find((voice) => voice.lang.toLowerCase() === 'en-gb') ??
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ??
+        null;
+    utterance.onend = () => {
+        if (activeUtterance !== utterance) return;
+
+        activeUtterance = null;
+        speakingMessageIndex.value = null;
+    };
+    utterance.onerror = utterance.onend;
+    activeUtterance = utterance;
+    speakingMessageIndex.value = index;
+    window.speechSynthesis.speak(utterance);
+}
+
+function toggleDictation(): void {
+    if (!recognition || chatProcessing.value) return;
+
+    if (isListening.value) {
+        recognition.stop();
+        return;
+    }
+
+    stopSpeech();
+    receivedSpeech = false;
+    isListening.value = true;
+    speechInputStatus.value = 'Listening. Tap the microphone to stop.';
+
+    try {
+        recognition.start();
+    } catch {
+        isListening.value = false;
+        speechInputStatus.value =
+            'Voice input could not start. You can keep typing.';
+    }
+}
+
+async function submitChat(): Promise<void> {
+    const message = chatDraft.value.trim();
+
+    if (!message || chatProcessing.value) return;
+
+    recognition?.abort();
+    isListening.value = false;
+    stopSpeech();
+    chatProcessing.value = true;
+    receivingChatText.value = false;
+    chatError.value = '';
+    const previousMessages = [...visibleChatMessages.value];
+    visibleChatMessages.value = [
+        ...previousMessages,
+        { role: 'user', content: message },
+    ];
+    chatDraft.value = '';
+
+    try {
+        const response = await fetch('/consultant/chat/stream', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'text/event-stream',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) {
+            const data = await readJson(response);
+            chatError.value = responseError(data);
+            visibleChatMessages.value = previousMessages;
+            chatDraft.value = message;
+            return;
+        }
+
+        await consumeChatStream(response);
+    } catch (error) {
+        visibleChatMessages.value = previousMessages;
+        chatDraft.value = message;
+        chatError.value =
+            error instanceof Error && error.message
+                ? error.message
+                : 'The AI consultant could not be reached. Check your connection and try again.';
+    } finally {
+        chatProcessing.value = false;
+        receivingChatText.value = false;
+    }
+}
+
+async function consumeChatStream(response: Response): Promise<void> {
+    if (!response.body) {
+        throw new Error(
+            'Streaming is unavailable in this browser. Please try again.',
+        );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let completed = false;
+
+    const consumeEvent = (block: string): void => {
+        let eventName = 'message';
+        const dataLines: string[] = [];
+
+        for (const line of block.split(/\r?\n/)) {
+            if (line.startsWith('event:')) {
+                eventName = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+                dataLines.push(line.slice(5).trimStart());
+            }
+        }
+
+        if (dataLines.length === 0) return;
+
+        const data = JSON.parse(dataLines.join('\n')) as Record<
+            string,
+            unknown
+        >;
+
+        if (eventName === 'delta' && typeof data.text === 'string') {
+            if (!receivingChatText.value) {
+                receivingChatText.value = true;
+                visibleChatMessages.value.push({
+                    role: 'assistant',
+                    content: '',
+                });
+            }
+
+            const lastMessage = visibleChatMessages.value.at(-1);
+
+            if (lastMessage?.role === 'assistant') {
+                lastMessage.content += data.text;
+            }
+        }
+
+        if (eventName === 'error') {
+            throw new Error(
+                typeof data.message === 'string'
+                    ? data.message
+                    : 'The AI consultant could not respond. Please try again.',
+            );
+        }
+
+        if (eventName === 'complete') {
+            if (Array.isArray(data.messages)) {
+                visibleChatMessages.value = data.messages as ChatMessage[];
+            }
+
+            if (
+                data.emergencyContact &&
+                typeof data.emergencyContact === 'object' &&
+                'phone' in data.emergencyContact &&
+                typeof data.emergencyContact.phone === 'string'
+            ) {
+                emergencyPhone.value = data.emergencyContact.phone;
+            }
+
+            completed = true;
+        }
+    };
+
+    while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const blocks = buffer.split(/\r?\n\r?\n/);
+        buffer = blocks.pop() ?? '';
+
+        for (const block of blocks) {
+            consumeEvent(block);
+        }
+
+        if (done) break;
+    }
+
+    if (buffer.trim()) consumeEvent(buffer);
+
+    if (!completed) {
+        throw new Error(
+            'The AI response ended unexpectedly. Please try again.',
+        );
+    }
+}
+
+function submitChatFromKeyboard(event: KeyboardEvent): void {
+    if (event.isComposing) return;
+
+    event.preventDefault();
+    void submitChat();
+}
+
+async function resetChat(): Promise<void> {
+    if (chatProcessing.value) return;
+
+    chatError.value = '';
+    recognition?.abort();
+    isListening.value = false;
+    speechInputStatus.value = '';
+    stopSpeech();
+
+    try {
+        const response = await fetch('/consultant/chat', {
+            method: 'DELETE',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        if (!response.ok) {
+            chatError.value = 'The conversation could not be cleared.';
+            return;
+        }
+
+        visibleChatMessages.value = [];
+        chatDraft.value = '';
+    } catch {
+        chatError.value = 'The conversation could not be cleared.';
+    }
 }
 
 function animateConsultPanel(): void {
@@ -113,6 +539,64 @@ function animateConsultPanel(): void {
 
 onMounted(() => {
     if (!pageRoot.value) return;
+
+    const speechWindow = window as typeof window & {
+        SpeechRecognition?: SpeechRecognitionConstructor;
+        webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const Recognition =
+        speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+
+    browserSpeechOutputSupported.value =
+        'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+    if (Recognition && !isTwiLocale.value) {
+        browserSpeechInputSupported.value = true;
+        recognition = new Recognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = navigator.language.toLowerCase().startsWith('en')
+            ? navigator.language
+            : 'en-GH';
+        recognition.onresult = (event) => {
+            const spokenParts: string[] = [];
+
+            for (
+                let index = event.resultIndex;
+                index < event.results.length;
+                index++
+            ) {
+                if (event.results[index].isFinal) {
+                    spokenParts.push(event.results[index][0].transcript.trim());
+                }
+            }
+
+            if (spokenParts.length === 0) return;
+
+            receivedSpeech = true;
+            chatDraft.value = [chatDraft.value.trim(), spokenParts.join(' ')]
+                .filter(Boolean)
+                .join(' ')
+                .slice(0, 1000);
+            speechInputStatus.value =
+                'Voice added. Review the message before sending.';
+        };
+        recognition.onerror = (event) => {
+            isListening.value = false;
+            speechInputStatus.value =
+                event.error === 'not-allowed'
+                    ? 'Microphone access was not allowed. You can keep typing.'
+                    : 'Voice input stopped. You can keep typing.';
+        };
+        recognition.onend = () => {
+            isListening.value = false;
+
+            if (!receivedSpeech) {
+                speechInputStatus.value =
+                    'Voice input stopped. Tap the microphone to try again.';
+            }
+        };
+    }
 
     gsap.registerPlugin(DrawSVGPlugin, MorphSVGPlugin, Observer, ScrollTrigger);
 
@@ -317,12 +801,16 @@ onMounted(() => {
 });
 
 watch(activeConsultTab, async () => {
+    recognition?.abort();
+    isListening.value = false;
+    speechInputStatus.value = '';
+    stopSpeech();
     await nextTick();
     animateConsultPanel();
 });
 
 watch(
-    () => props.chatMessages.length,
+    () => visibleChatMessages.value.length,
     async (currentLength, previousLength) => {
         if (currentLength <= previousLength) return;
 
@@ -356,7 +844,19 @@ watch(
     },
 );
 
+watch(chatProcessing, async (isProcessing) => {
+    if (!isProcessing) return;
+
+    await nextTick();
+    chatHistory.value?.scrollTo({
+        top: chatHistory.value.scrollHeight,
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
+});
+
 onBeforeUnmount(() => {
+    recognition?.abort();
+    stopSpeech();
     motionContext?.revert();
 });
 </script>
@@ -380,6 +880,7 @@ onBeforeUnmount(() => {
                 </Link>
 
                 <div class="ml-auto flex items-center gap-2 sm:gap-4">
+                    <LanguageSwitch />
                     <Link
                         href="/emergency"
                         class="home-emergency-alarm inline-flex size-11 items-center justify-center rounded-full bg-[#c53f52] text-white shadow-[0_8px_20px_-10px_rgba(197,63,82,0.9)] transition-colors outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-[#c53f52]/35"
@@ -390,12 +891,10 @@ onBeforeUnmount(() => {
                         <span class="sr-only">Emergency help</span>
                     </Link>
                     <Link
-                        :href="$page.props.auth.user ? dashboard() : login()"
+                        :href="staffWorkspaceHref"
                         class="hidden rounded-md text-sm font-semibold text-[#45635b] outline-none hover:text-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 sm:inline-flex"
                     >
-                        {{
-                            $page.props.auth.user ? 'Dashboard' : 'Staff login'
-                        }}
+                        {{ staffWorkspaceLabel }}
                     </Link>
                 </div>
             </nav>
@@ -528,9 +1027,9 @@ onBeforeUnmount(() => {
                                 variant="outline"
                                 class="h-12 border-[#c6d8d1] bg-white/85 px-6 text-base text-[#365a51] hover:bg-white"
                             >
-                                <Link :href="login()"
-                                    >Open staff workspace</Link
-                                >
+                                <Link :href="staffWorkspaceHref">{{
+                                    staffWorkspaceActionLabel
+                                }}</Link>
                             </Button>
                         </div>
 
@@ -703,7 +1202,7 @@ onBeforeUnmount(() => {
                                     aria-live="polite"
                                 >
                                     <div
-                                        v-if="chatMessages.length === 0"
+                                        v-if="visibleChatMessages.length === 0"
                                         class="flex gap-3"
                                     >
                                         <div
@@ -724,7 +1223,9 @@ onBeforeUnmount(() => {
                                         </p>
                                     </div>
                                     <div
-                                        v-for="(message, index) in chatMessages"
+                                        v-for="(
+                                            message, index
+                                        ) in visibleChatMessages"
                                         :key="`${index}-${message.role}`"
                                         data-chat-message
                                         class="flex"
@@ -734,7 +1235,141 @@ onBeforeUnmount(() => {
                                                 : 'justify-start'
                                         "
                                     >
-                                        <p
+                                        <div
+                                            v-if="
+                                                message.role === 'assistant' &&
+                                                message.emergency
+                                            "
+                                            class="w-full rounded-xl bg-[#fff0f2] p-5 text-[#711d2b] ring-1 ring-[#e9a8b2] sm:p-6"
+                                            role="alert"
+                                        >
+                                            <div class="flex items-start gap-3">
+                                                <span
+                                                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#c53f52] text-white"
+                                                >
+                                                    <Siren
+                                                        class="size-5"
+                                                        aria-hidden="true"
+                                                    />
+                                                </span>
+                                                <div class="min-w-0">
+                                                    <h3
+                                                        class="text-base font-semibold text-[#8a2637]"
+                                                    >
+                                                        Get emergency help now
+                                                    </h3>
+                                                    <p
+                                                        class="mt-1 text-sm leading-6 break-words"
+                                                    >
+                                                        {{ message.content }}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-[#8a2637] outline-none hover:bg-white/70 focus-visible:ring-3 focus-visible:ring-[#c53f52]/30 disabled:cursor-not-allowed disabled:opacity-55"
+                                                        :disabled="
+                                                            !speechOutputSupported
+                                                        "
+                                                        :title="
+                                                            speechOutputSupported
+                                                                ? undefined
+                                                                : readAloudUnavailableMessage
+                                                        "
+                                                        :aria-label="
+                                                            !speechOutputSupported
+                                                                ? readAloudUnavailableMessage
+                                                                : speakingMessageIndex ===
+                                                                    index
+                                                                  ? 'Stop reading this emergency message'
+                                                                  : 'Read this emergency message aloud'
+                                                        "
+                                                        @click="
+                                                            toggleMessageSpeech(
+                                                                message,
+                                                                index,
+                                                            )
+                                                        "
+                                                    >
+                                                        <VolumeX
+                                                            v-if="
+                                                                speakingMessageIndex ===
+                                                                index
+                                                            "
+                                                            class="size-3.5"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <Volume2
+                                                            v-else
+                                                            class="size-3.5"
+                                                            aria-hidden="true"
+                                                        />
+                                                        {{
+                                                            speakingMessageIndex ===
+                                                            index
+                                                                ? 'Stop'
+                                                                : 'Listen'
+                                                        }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                class="mt-5 grid gap-2 sm:grid-cols-2"
+                                            >
+                                                <a
+                                                    :href="`tel:${emergencyPhone}`"
+                                                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#c53f52] px-4 text-sm font-semibold text-white outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-[#c53f52]/30"
+                                                >
+                                                    <PhoneCall
+                                                        class="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Call
+                                                    {{ emergencyPhone }} now
+                                                </a>
+                                                <Link
+                                                    href="/emergency"
+                                                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-[#8a2637] ring-1 ring-[#d98290] outline-none hover:bg-[#fff7f8] focus-visible:ring-3 focus-visible:ring-[#c53f52]/30"
+                                                >
+                                                    <MapPin
+                                                        class="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Find emergency care
+                                                </Link>
+                                            </div>
+                                            <div
+                                                v-if="
+                                                    message.first_aid_steps
+                                                        ?.length
+                                                "
+                                                class="mt-5 border-t border-[#e9a8b2] pt-4"
+                                            >
+                                                <h4
+                                                    class="text-sm font-semibold text-[#711d2b]"
+                                                >
+                                                    While help is on the way
+                                                </h4>
+                                                <ol
+                                                    class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-[#711d2b] marker:font-semibold marker:text-[#c53f52]"
+                                                >
+                                                    <li
+                                                        v-for="step in message.first_aid_steps"
+                                                        :key="step"
+                                                        class="pl-1"
+                                                    >
+                                                        {{ step }}
+                                                    </li>
+                                                </ol>
+                                            </div>
+                                            <p
+                                                class="mt-3 text-xs leading-5 text-[#8a2637]"
+                                            >
+                                                The AI conversation has stopped
+                                                so it does not delay urgent
+                                                care.
+                                            </p>
+                                        </div>
+                                        <div
+                                            v-else
                                             class="max-w-[88%] rounded-xl px-4 py-3 text-sm leading-6 break-words whitespace-pre-wrap"
                                             :class="
                                                 message.role === 'user'
@@ -742,22 +1377,94 @@ onBeforeUnmount(() => {
                                                     : 'bg-white text-[#45635b]'
                                             "
                                         >
-                                            {{ message.content }}
-                                        </p>
+                                            <p>{{ message.content }}</p>
+                                            <button
+                                                v-if="
+                                                    message.role === 'assistant'
+                                                "
+                                                type="button"
+                                                class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-[#197f6d] outline-none hover:bg-[#eef8f4] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 disabled:cursor-not-allowed disabled:opacity-55"
+                                                :disabled="
+                                                    !speechOutputSupported
+                                                "
+                                                :title="
+                                                    speechOutputSupported
+                                                        ? undefined
+                                                        : readAloudUnavailableMessage
+                                                "
+                                                :aria-label="
+                                                    !speechOutputSupported
+                                                        ? readAloudUnavailableMessage
+                                                        : speakingMessageIndex ===
+                                                            index
+                                                          ? 'Stop reading this response'
+                                                          : 'Read this response aloud'
+                                                "
+                                                @click="
+                                                    toggleMessageSpeech(
+                                                        message,
+                                                        index,
+                                                    )
+                                                "
+                                            >
+                                                <VolumeX
+                                                    v-if="
+                                                        speakingMessageIndex ===
+                                                        index
+                                                    "
+                                                    class="size-3.5"
+                                                    aria-hidden="true"
+                                                />
+                                                <Volume2
+                                                    v-else
+                                                    class="size-3.5"
+                                                    aria-hidden="true"
+                                                />
+                                                {{
+                                                    speakingMessageIndex ===
+                                                    index
+                                                        ? 'Stop'
+                                                        : 'Listen'
+                                                }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div
+                                        v-if="
+                                            chatProcessing && !receivingChatText
+                                        "
+                                        class="flex items-end gap-3"
+                                        role="status"
+                                        aria-label="AI consultant is preparing a response"
+                                    >
+                                        <div
+                                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#dff2ec] text-[#116655]"
+                                            aria-hidden="true"
+                                        >
+                                            <Bot class="size-4" />
+                                        </div>
+                                        <div
+                                            class="flex h-11 items-center gap-1.5 rounded-xl bg-white px-4 shadow-[0_8px_20px_-16px_rgba(17,102,85,0.7)]"
+                                            aria-hidden="true"
+                                        >
+                                            <span
+                                                class="consultant-typing-dot"
+                                            />
+                                            <span
+                                                class="consultant-typing-dot"
+                                            />
+                                            <span
+                                                class="consultant-typing-dot"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <Form
-                                    action="/consultant/chat"
-                                    method="post"
+                                <form
+                                    v-if="!emergencyActive"
                                     class="mt-4"
-                                    :options="{
-                                        preserveScroll: true,
-                                        preserveState: true,
-                                    }"
-                                    reset-on-success
-                                    @success="chatDraft = ''"
-                                    v-slot="{ errors, processing }"
+                                    :aria-busy="chatProcessing"
+                                    @submit.prevent="submitChat"
                                 >
                                     <Label
                                         for="consultant_message"
@@ -774,13 +1481,56 @@ onBeforeUnmount(() => {
                                             rows="2"
                                             placeholder="Describe the concern…"
                                             class="min-h-12 min-w-0 flex-1 resize-none rounded-md border border-[#c6d8d1] bg-white px-3 py-2 text-base text-[#16352f] outline-none placeholder:text-[#758b84] focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
+                                            @keydown.enter.exact="
+                                                submitChatFromKeyboard
+                                            "
                                         />
                                         <Button
+                                            type="button"
+                                            variant="outline"
+                                            class="h-auto self-stretch border-[#c6d8d1] px-3 text-[#197f6d] hover:bg-[#e9f5f0] hover:text-[#116655]"
+                                            :class="
+                                                isListening
+                                                    ? 'bg-[#dff2ec] ring-3 ring-[#197f6d]/20'
+                                                    : 'bg-white'
+                                            "
+                                            :disabled="
+                                                chatProcessing ||
+                                                !speechInputSupported
+                                            "
+                                            :aria-pressed="isListening"
+                                            :aria-label="
+                                                !speechInputSupported
+                                                    ? speechInputUnavailableMessage
+                                                    : isListening
+                                                      ? 'Stop voice input'
+                                                      : 'Start voice input'
+                                            "
+                                            :title="
+                                                speechInputSupported
+                                                    ? undefined
+                                                    : speechInputUnavailableMessage
+                                            "
+                                            @click="toggleDictation"
+                                        >
+                                            <MicOff
+                                                v-if="isListening"
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                            <Mic
+                                                v-else
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                        <Button
+                                            type="submit"
                                             class="h-auto self-stretch bg-[#197f6d] px-4 text-white hover:bg-[#116655]"
-                                            :disabled="processing"
+                                            :disabled="chatProcessing"
                                             aria-label="Send message"
                                         >
-                                            <Spinner v-if="processing" />
+                                            <Spinner v-if="chatProcessing" />
                                             <Send
                                                 v-else
                                                 class="size-4"
@@ -790,8 +1540,64 @@ onBeforeUnmount(() => {
                                     </div>
                                     <InputError
                                         class="mt-2"
-                                        :message="errors.message"
+                                        :message="chatError"
                                     />
+                                    <p class="mt-2 text-xs text-[#60766f]">
+                                        Enter to send. Shift + Enter for a new
+                                        line.
+                                    </p>
+                                    <p
+                                        v-if="
+                                            speechInputStatus ||
+                                            !speechInputSupported
+                                        "
+                                        class="mt-1 text-xs font-medium text-[#45635b]"
+                                        role="status"
+                                        aria-live="polite"
+                                    >
+                                        {{
+                                            speechInputStatus ||
+                                            speechInputUnavailableMessage
+                                        }}
+                                    </p>
+                                </form>
+
+                                <Form
+                                    v-if="canContinueFromChat"
+                                    action="/consultant/chat/intake"
+                                    method="post"
+                                    class="mt-5 rounded-xl bg-[#e7f1ed] p-4 sm:flex sm:items-center sm:justify-between sm:gap-5"
+                                    v-slot="{ errors, processing }"
+                                >
+                                    <div class="min-w-0">
+                                        <p class="font-semibold text-[#173a33]">
+                                            Continue with this concern
+                                        </p>
+                                        <p
+                                            class="mt-1 text-sm leading-6 text-[#45635b]"
+                                        >
+                                            Your messages will prefill the main
+                                            concern. Phone verification is still
+                                            required before intake.
+                                        </p>
+                                        <InputError
+                                            class="mt-2"
+                                            :message="errors.chat_handoff"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        class="mt-4 min-h-11 w-full shrink-0 bg-[#197f6d] px-5 text-white hover:bg-[#116655] sm:mt-0 sm:w-auto"
+                                        :disabled="processing"
+                                    >
+                                        <Spinner v-if="processing" />
+                                        Continue
+                                        <ArrowRight
+                                            v-if="!processing"
+                                            class="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    </Button>
                                 </Form>
 
                                 <div
@@ -803,18 +1609,11 @@ onBeforeUnmount(() => {
                                         include unnecessary identifying
                                         information.
                                     </p>
-                                    <Form
-                                        v-if="chatMessages.length"
-                                        action="/consultant/chat"
-                                        method="delete"
-                                        :options="{
-                                            preserveScroll: true,
-                                            preserveState: true,
-                                        }"
-                                    >
+                                    <div v-if="visibleChatMessages.length">
                                         <button
                                             class="inline-flex shrink-0 items-center gap-1 font-semibold text-[#45635b] underline underline-offset-4"
-                                            type="submit"
+                                            type="button"
+                                            @click="resetChat"
                                         >
                                             <RotateCcw
                                                 class="size-3.5"
@@ -822,7 +1621,7 @@ onBeforeUnmount(() => {
                                             />
                                             New chat
                                         </button>
-                                    </Form>
+                                    </div>
                                 </div>
                             </div>
 
@@ -844,13 +1643,159 @@ onBeforeUnmount(() => {
                                         class="mt-2 text-sm leading-6 text-[#356f6b]"
                                     >
                                         A consultant callback request has been
-                                        added to the queue. This prototype
-                                        cannot guarantee a response time. Keep
-                                        this reference:
+                                        added to the queue with a verified phone
+                                        number. This prototype cannot guarantee
+                                        a response time. Keep this reference:
                                         <strong class="break-all">{{
                                             consultantRequestReference
                                         }}</strong>
                                     </p>
+                                </div>
+
+                                <div
+                                    v-else-if="callbackVerification"
+                                    class="space-y-5"
+                                >
+                                    <div>
+                                        <div
+                                            class="flex size-10 items-center justify-center rounded-xl bg-[#dff2ec] text-[#116655]"
+                                        >
+                                            <LockKeyhole
+                                                class="size-5"
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+                                        <h3
+                                            class="mt-4 text-xl font-semibold text-[#173a33]"
+                                        >
+                                            Verify your callback number
+                                        </h3>
+                                        <p
+                                            class="mt-2 text-sm leading-6 text-[#45635b]"
+                                        >
+                                            Enter the 6-digit code sent to
+                                            {{
+                                                callbackVerification.phoneNumber
+                                            }}. The request will not enter the
+                                            consultant queue until it is
+                                            verified.
+                                        </p>
+                                    </div>
+
+                                    <p
+                                        v-if="callbackVerification.status"
+                                        role="status"
+                                        class="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
+                                    >
+                                        <CheckCircle2
+                                            class="size-4 shrink-0"
+                                            aria-hidden="true"
+                                        />
+                                        {{ callbackVerification.status }}
+                                    </p>
+
+                                    <div
+                                        v-if="callbackVerification.demoCode"
+                                        class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
+                                    >
+                                        <p class="font-semibold">
+                                            Local demo code
+                                        </p>
+                                        <p class="mt-1">
+                                            Use
+                                            <strong
+                                                class="font-mono text-base tracking-widest"
+                                                >{{
+                                                    callbackVerification.demoCode
+                                                }}</strong
+                                            >. This callout is disabled in
+                                            production.
+                                        </p>
+                                    </div>
+
+                                    <Form
+                                        action="/consultant/request/verify"
+                                        method="post"
+                                        class="space-y-4"
+                                        v-slot="{ errors, processing }"
+                                    >
+                                        <div>
+                                            <Label for="callback_code"
+                                                >Verification code</Label
+                                            >
+                                            <input
+                                                id="callback_code"
+                                                name="code"
+                                                type="text"
+                                                inputmode="numeric"
+                                                autocomplete="one-time-code"
+                                                pattern="[0-9]{6}"
+                                                maxlength="6"
+                                                required
+                                                autofocus
+                                                aria-describedby="callback-code-hint"
+                                                class="mt-2 h-14 w-full rounded-xl border border-[#c6d8d1] bg-white px-4 text-center text-2xl font-semibold tracking-[0.32em] text-[#173a33] caret-[#197f6d] outline-none focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
+                                                placeholder="000000"
+                                            />
+                                            <p
+                                                id="callback-code-hint"
+                                                class="mt-2 text-sm text-[#60766f]"
+                                            >
+                                                {{ callbackCodeExpiry }} Never
+                                                share this code with anyone.
+                                            </p>
+                                            <InputError
+                                                class="mt-2"
+                                                :message="errors.code"
+                                            />
+                                        </div>
+                                        <Button
+                                            class="h-11 w-full bg-[#197f6d] text-white hover:bg-[#116655]"
+                                            :disabled="processing"
+                                        >
+                                            <Spinner v-if="processing" />
+                                            Verify and request callback
+                                        </Button>
+                                    </Form>
+
+                                    <div
+                                        class="flex flex-wrap items-center justify-between gap-3 border-t border-[#d2e2dc] pt-4"
+                                    >
+                                        <Form
+                                            action="/consultant/request/resend"
+                                            method="post"
+                                            v-slot="{ errors, processing }"
+                                        >
+                                            <Button
+                                                type="submit"
+                                                variant="ghost"
+                                                class="text-[#45635b] hover:bg-[#e7f1ed] hover:text-[#173a33]"
+                                                :disabled="processing"
+                                            >
+                                                <RotateCw
+                                                    class="size-4"
+                                                    aria-hidden="true"
+                                                />
+                                                Resend code
+                                            </Button>
+                                            <InputError
+                                                class="mt-2"
+                                                :message="errors.resend"
+                                            />
+                                        </Form>
+                                        <Form
+                                            action="/consultant/request"
+                                            method="delete"
+                                        >
+                                            <Button
+                                                type="submit"
+                                                variant="ghost"
+                                                class="text-[#60766f] hover:bg-slate-100 hover:text-[#173a33]"
+                                            >
+                                                Use another number
+                                            </Button>
+                                        </Form>
+                                    </div>
                                 </div>
 
                                 <Form
@@ -911,6 +1856,7 @@ onBeforeUnmount(() => {
                                         <textarea
                                             id="consultant_concern"
                                             name="concern"
+                                            :value="callbackConcernPrefill"
                                             maxlength="1000"
                                             rows="3"
                                             class="w-full resize-y rounded-md border border-[#c6d8d1] bg-white px-3 py-2 text-base text-[#16352f] outline-none focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
@@ -971,6 +1917,26 @@ onBeforeUnmount(() => {
     .home-emergency-alarm {
         animation: emergency-alarm-glow 1.8s ease-in-out infinite;
     }
+
+    .consultant-typing-dot {
+        animation: consultant-typing 1.05s ease-in-out infinite;
+    }
+
+    .consultant-typing-dot:nth-child(2) {
+        animation-delay: 0.14s;
+    }
+
+    .consultant-typing-dot:nth-child(3) {
+        animation-delay: 0.28s;
+    }
+}
+
+.consultant-typing-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+    background: #197f6d;
+    opacity: 0.58;
 }
 
 @keyframes emergency-alarm-glow {
@@ -984,6 +1950,19 @@ onBeforeUnmount(() => {
         box-shadow:
             0 0 0 7px rgba(197, 63, 82, 0.17),
             0 10px 28px -8px rgba(197, 63, 82, 0.78);
+    }
+}
+
+@keyframes consultant-typing {
+    0%,
+    60%,
+    100% {
+        opacity: 0.42;
+        transform: translateY(0);
+    }
+    30% {
+        opacity: 1;
+        transform: translateY(-0.18rem);
     }
 }
 </style>

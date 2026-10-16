@@ -28,6 +28,7 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="MEDIPATH_ASSESSMENT_DRIVER" value="deterministic" force="true"/>
+        <env name="MEDIPATH_PHONE_VERIFICATION_DRIVER" value="local" force="true"/>
         <env name="MEDIPATH_GEOCODING_ENABLED" value="false" force="true"/>
         <env name="AUTH_MODEL" value="App\Models\User"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

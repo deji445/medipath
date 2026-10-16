@@ -15,24 +15,17 @@ final class InitialConcernSafetyScreener
 {
     public function __construct(
         private readonly AssessmentProvider $provider,
-        private readonly EmergencyConcernDetector $concernDetector,
-        private readonly VitalSignsSafetyEvaluator $vitalSignsEvaluator,
+        private readonly DeterministicEmergencyScreener $emergencyScreener,
     ) {}
 
     public function screen(Visit $visit): bool
     {
         $concern = trim((string) ($visit->intake_answers['main_complaint'] ?? ''));
-        $vitalSigns = $this->vitalSignsEvaluator->evaluate($visit);
+        $screening = $this->emergencyScreener->screenVisit($visit);
         $deterministicFlags = array_map(
             fn (RedFlagCode $code): string => $code->value,
-            $this->concernDetector->detect($concern),
+            $screening['red_flags'],
         );
-
-        if ($vitalSigns['critical']) {
-            $deterministicFlags[] = RedFlagCode::CriticalVitalSigns->value;
-        }
-
-        $deterministicFlags = array_values(array_unique($deterministicFlags));
         $aiResult = null;
         $providerError = null;
 
@@ -69,7 +62,7 @@ final class InitialConcernSafetyScreener
             $matchedFlags,
             $aiResult,
             $providerError,
-            $vitalSigns,
+            $screening,
         ): void {
             $intakeAnswers = $visit->intake_answers ?? [];
             $intakeAnswers['safety_screen'] = array_filter([
@@ -78,7 +71,7 @@ final class InitialConcernSafetyScreener
                 'source' => 'automated_concern_screen',
                 'provider_model' => $aiResult?->providerModel,
                 'provider_error' => $providerError,
-                'vital_findings' => $vitalSigns['findings'] ?: null,
+                'vital_findings' => $screening['vital_findings'] ?: null,
             ], fn (mixed $value): bool => $value !== null);
             $visit->update(['intake_answers' => $intakeAnswers]);
 

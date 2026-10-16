@@ -4,15 +4,37 @@ namespace Tests\Unit;
 
 use App\Models\Patient;
 use App\Models\Visit;
+use App\Services\Ai\AiCircuitBreaker;
+use App\Services\Ai\AiRequestRecorder;
 use App\Services\Assessment\AssessmentInputBuilder;
 use App\Services\Assessment\GeminiAssessmentConversationProvider;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class GeminiAssessmentConversationProviderTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Schema::create('ai_request_events', function (Blueprint $table): void {
+            $table->id();
+            $table->string('feature');
+            $table->string('provider');
+            $table->string('model');
+            $table->string('outcome');
+            $table->unsignedInteger('duration_ms');
+            $table->unsignedTinyInteger('attempt_count');
+            $table->unsignedTinyInteger('retry_count');
+            $table->string('error_code')->nullable();
+            $table->timestamp('created_at');
+        });
+    }
+
     public function test_it_requests_one_deidentified_follow_up_question(): void
     {
         config()->set([
@@ -43,7 +65,11 @@ class GeminiAssessmentConversationProviderTest extends TestCase
             ]),
         ]);
 
-        $turn = (new GeminiAssessmentConversationProvider(new AssessmentInputBuilder))->nextTurn(
+        $turn = (new GeminiAssessmentConversationProvider(
+            new AssessmentInputBuilder,
+            new AiRequestRecorder,
+            new AiCircuitBreaker,
+        ))->nextTurn(
             $this->visit(),
             ['ai_1' => 'It started yesterday and is getting worse.'],
             ['ai_1' => 'When did it start and how has it changed?'],
@@ -52,6 +78,12 @@ class GeminiAssessmentConversationProviderTest extends TestCase
 
         $this->assertSame('Does anything make the pain better or worse?', $turn->question);
         $this->assertNull($turn->result);
+        $this->assertDatabaseHas('ai_request_events', [
+            'feature' => 'assessment_conversation',
+            'outcome' => 'SUCCEEDED',
+            'attempt_count' => 1,
+            'retry_count' => 0,
+        ]);
         Http::assertSent(function (Request $request): bool {
             $input = json_decode((string) $request->data()['input'], true);
 

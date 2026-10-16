@@ -169,7 +169,7 @@ The palette combines a trustworthy Care Green with fresh supporting green, botan
 
 ## Layout
 
-Patient workflows use a centered reading column up to 56rem wide, with 16px side padding on small screens, 24px from the small breakpoint, and 32px to 40px vertical page rhythm. Intake panels use 24px padding on small screens and 32px on larger screens. Keep the six-stage patient journey visible beneath the intake header from Patient through Share. On narrow screens, let the rail scroll horizontally and center the active stage rather than compressing or hiding labels. Landing content expands to a 72rem container and becomes a two-column composition at the large breakpoint, with a 48px to 64px gap.
+Patient workflows use a centered reading column up to 56rem wide, with 16px side padding on small screens, 24px from the small breakpoint, and 32px to 40px vertical page rhythm. Intake panels use 24px padding on small screens and 32px on larger screens. Keep the five-stage patient journey visible beneath the intake header from Patient through Share. On narrow screens, let the rail scroll horizontally and center the active stage rather than compressing or hiding labels. Landing content expands to a 72rem container and becomes a two-column composition at the large breakpoint, with a 48px to 64px gap.
 
 Staff content may expand to a 80rem container within the light application shell. Authentication uses an equal-weight split at the large breakpoint: contextual hospital-workspace orientation on one side and a focused sign-in panel on the other. Use a 4px base spacing rhythm, favoring 8px for tight relationships, 16px for component spacing, 24px for groups, 32px for sections, and 48px for major separation. Collapse multi-column layouts before reducing readable padding.
 
@@ -225,7 +225,7 @@ Headers are white, lightly bordered, and deliberately quiet. Active navigation u
 
 ### Patient Journey Rail
 
-Use six ordered stages—Patient, History, Current visit, Guidance, Hospital, and Share—as the persistent intake orientation model. The active stage uses Supporting Green and `aria-current="step"`; completed stages remain legible but quieter, and upcoming stages recede. The rail stays horizontally scrollable on narrow screens and brings the active stage to the center when the route changes.
+Use five ordered stages—Patient, Current concern, Assessment, Hospital, and Share—as the persistent intake orientation model. Patient includes profile and medical-history confirmation; Current concern includes the visit description, location, and any known vital signs; Assessment includes deterministic safety screening and AI-supported guidance. The active stage uses Supporting Green and `aria-current="step"`; completed stages remain legible but quieter, and upcoming stages recede. The rail stays horizontally scrollable on narrow screens and brings the active stage to the center when the route changes.
 
 ### Progress Eyebrow
 

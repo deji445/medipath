@@ -107,6 +107,7 @@ create table consultant_requests (
     normalized_phone text not null,
     concern text,
     status text not null default 'NEW',
+    phone_verified_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     constraint consultant_requests_name_not_blank check (btrim(name) <> ''),
@@ -326,6 +327,28 @@ create index audit_events_hospital_created_idx
     on audit_events (hospital_id, created_at desc);
 create index audit_events_entity_idx
     on audit_events (entity_type, entity_id, created_at desc);
+
+create table ai_request_events (
+    id bigint generated always as identity primary key,
+    feature text not null,
+    provider text not null,
+    model text not null,
+    outcome text not null,
+    duration_ms integer not null,
+    attempt_count smallint not null,
+    retry_count smallint not null,
+    error_code text,
+    created_at timestamptz not null default now(),
+    constraint ai_request_events_outcome_valid check (outcome in ('SUCCEEDED', 'FAILED')),
+    constraint ai_request_events_duration_valid check (duration_ms >= 0),
+    constraint ai_request_events_attempt_count_valid check (attempt_count between 0 and 10),
+    constraint ai_request_events_retry_count_valid check (retry_count between 0 and 9)
+);
+
+create index ai_request_events_feature_created_at_idx
+    on ai_request_events (feature, created_at desc);
+create index ai_request_events_outcome_created_at_idx
+    on ai_request_events (outcome, created_at desc);
 
 create or replace function set_updated_at()
 returns trigger

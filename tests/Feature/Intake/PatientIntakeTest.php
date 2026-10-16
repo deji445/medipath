@@ -11,7 +11,9 @@ use App\Services\Assessment\AssessmentProvider;
 use App\Services\Assessment\AssessmentResult;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -22,6 +24,7 @@ class PatientIntakeTest extends TestCase
     {
         parent::setUp();
         CarbonImmutable::setTestNow('2026-10-04 12:00:00');
+        config()->set('medipath.phone_verification.demo_code', '123456');
 
         foreach (['consent_events', 'assessments', 'visits', 'patient_medications', 'patient_allergies', 'patient_conditions', 'patients'] as $table) {
             Schema::dropIfExists($table);
@@ -109,15 +112,71 @@ class PatientIntakeTest extends TestCase
         });
     }
 
+    public function test_sms_delivery_failure_returns_a_retryable_form_error(): void
+    {
+        config()->set([
+            'medipath.phone_verification.driver' => 'bms',
+            'medipath.phone_verification.bms.endpoint' => 'https://bms.test/api/sms/quick',
+            'medipath.phone_verification.bms.api_key' => 'private-test-key',
+            'medipath.phone_verification.bms.sender_id' => 'MediPath',
+        ]);
+        Http::fake(['https://bms.test/api/sms/quick*' => Http::response([], 503)]);
+
+        $this->from('/intake')
+            ->post('/intake/lookup', ['phone_number' => '0241234567'])
+            ->assertRedirect('/intake')
+            ->assertSessionHasErrors([
+                'phone_number' => 'The verification message could not be sent right now. Please wait a moment and try again.',
+            ]);
+
+        Http::assertSentCount(2);
+    }
+
     protected function tearDown(): void
     {
         CarbonImmutable::setTestNow();
         parent::tearDown();
     }
 
+    public function test_chat_handoff_survives_phone_lookup_and_prefills_the_visit_concern(): void
+    {
+        $handoff = [
+            'main_complaint' => 'A dull stomach pain since this morning.',
+            'message_count' => 2,
+            'started_at' => now()->toIso8601String(),
+        ];
+
+        $this->withSession(['intake.chat_handoff' => $handoff])
+            ->post('/intake/lookup', [
+                'phone_number' => '024 123 4567',
+                'streamlined' => '1',
+            ])
+            ->assertRedirect('/intake/verify-phone')
+            ->assertSessionHas('intake.chat_handoff', $handoff);
+
+        $this->withSession([
+            'intake.identity' => [
+                'first_name' => 'Ama',
+                'last_name' => 'Mensah',
+                'date_of_birth' => '1995-04-10',
+                'sex_at_birth' => 'FEMALE',
+            ],
+            'intake.history' => [
+                'conditions' => [],
+                'allergies' => [],
+                'medications' => [],
+            ],
+            'intake.chat_handoff' => $handoff,
+        ])->get('/intake/visit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('intake/Visit')
+                ->where('visit.main_complaint', $handoff['main_complaint']));
+    }
+
     public function test_a_new_patient_can_complete_the_intake_workflow(): void
     {
-        $this->post('/intake/lookup', ['phone_number' => '024 123 4567'])
+        $this->startVerifiedIntake('024 123 4567')
             ->assertRedirect('/intake/identity')
             ->assertSessionHas('intake.phone', '+233241234567');
 
@@ -205,10 +264,8 @@ class PatientIntakeTest extends TestCase
 
     public function test_the_streamlined_patient_flow_runs_the_safety_screen_and_opens_the_assessment(): void
     {
-        $this->post('/intake/lookup', [
-            'phone_number' => '024 123 4567',
-            'streamlined' => '1',
-        ])->assertRedirect('/intake');
+        $this->startVerifiedIntake('024 123 4567', true)
+            ->assertRedirect('/intake');
 
         $this->get('/intake')->assertOk()->assertInertia(
             fn (Assert $page) => $page
@@ -449,10 +506,8 @@ class PatientIntakeTest extends TestCase
             'sex_at_birth' => 'FEMALE',
         ]);
 
-        $this->post('/intake/lookup', [
-            'phone_number' => '0200000001',
-            'streamlined' => '1',
-        ])->assertRedirect('/intake');
+        $this->startVerifiedIntake('0200000001', true)
+            ->assertRedirect('/intake');
 
         $this->post('/intake/profile', [
             'use_existing' => '1',
@@ -571,7 +626,7 @@ class PatientIntakeTest extends TestCase
             'sex_at_birth' => 'FEMALE',
         ]);
 
-        $this->post('/intake/lookup', ['phone_number' => '0200000001'])
+        $this->startVerifiedIntake('0200000001')
             ->assertRedirect('/intake/identity');
 
         $this->get('/intake/identity')->assertOk()->assertInertia(
@@ -592,6 +647,55 @@ class PatientIntakeTest extends TestCase
 
         $this->post('/intake/visit', $this->validVisitData())
             ->assertSessionHas('intake.visit.age_years', 36);
+    }
+
+    public function test_patient_data_is_not_loaded_until_the_phone_is_verified(): void
+    {
+        $patient = Patient::query()->create([
+            'normalized_phone' => '+233200000001',
+            'first_name' => 'Private',
+            'last_name' => 'Patient',
+            'date_of_birth' => '1990-01-15',
+            'sex_at_birth' => 'FEMALE',
+        ]);
+
+        $this->post('/intake/lookup', ['phone_number' => '0200000001'])
+            ->assertRedirect('/intake/verify-phone')
+            ->assertSessionMissing('intake.phone')
+            ->assertSessionMissing('intake.patient_id')
+            ->assertSessionHas('intake.pending_phone_verification.phone', '+233200000001');
+
+        $this->get('/intake')->assertOk()->assertInertia(
+            fn (Assert $page) => $page
+                ->component('intake/Start')
+                ->where('existingPatient', null),
+        );
+
+        $this->post('/intake/verify-phone', ['code' => '123456'])
+            ->assertRedirect('/intake/identity')
+            ->assertSessionHas('intake.phone', '+233200000001')
+            ->assertSessionHas('intake.patient_id', $patient->getKey())
+            ->assertSessionMissing('intake.pending_phone_verification');
+    }
+
+    public function test_an_incorrect_phone_code_is_rejected_and_counted(): void
+    {
+        $this->post('/intake/lookup', ['phone_number' => '0241234567']);
+
+        $this->post('/intake/verify-phone', ['code' => '000000'])
+            ->assertSessionHasErrors('code')
+            ->assertSessionHas('intake.pending_phone_verification.attempts', 1)
+            ->assertSessionMissing('intake.phone');
+    }
+
+    public function test_an_expired_phone_code_is_rejected(): void
+    {
+        $this->post('/intake/lookup', ['phone_number' => '0241234567']);
+        CarbonImmutable::setTestNow('2026-10-04 12:11:00');
+
+        $this->post('/intake/verify-phone', ['code' => '123456'])
+            ->assertSessionHasErrors('code')
+            ->assertSessionMissing('intake.phone');
     }
 
     public function test_the_combined_intake_notice_is_required(): void
@@ -661,6 +765,22 @@ class PatientIntakeTest extends TestCase
             'oxygen_saturation_percent' => 97,
             'intake_consent_acknowledged' => '1',
         ];
+    }
+
+    private function startVerifiedIntake(
+        string $phoneNumber,
+        bool $streamlined = false,
+    ): TestResponse {
+        $lookup = $this->post('/intake/lookup', array_filter([
+            'phone_number' => $phoneNumber,
+            'streamlined' => $streamlined ? '1' : null,
+        ]));
+
+        $lookup->assertRedirect('/intake/verify-phone')
+            ->assertSessionMissing('intake.phone')
+            ->assertSessionMissing('intake.patient_id');
+
+        return $this->post('/intake/verify-phone', ['code' => '123456']);
     }
 
     private function createVisitReadyForAssessment(): Visit
