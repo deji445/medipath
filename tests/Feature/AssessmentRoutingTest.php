@@ -170,11 +170,7 @@ class AssessmentRoutingTest extends TestCase
         ]);
 
         $this->withSession($session)->get('/intake/assessment/result')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('assessment/Result')
-                ->where('result.severity', 'MEDIUM')
-                ->where('result.recommendedAction', 'SEEK_CARE_SOON'));
+            ->assertRedirect('/intake/routing');
     }
 
     public function test_provider_failure_is_saved_as_unavailable_and_never_as_low_priority(): void
@@ -323,7 +319,7 @@ class AssessmentRoutingTest extends TestCase
         $this->withSession($session)->post('/intake/assessment', [
             'question_key' => 'ai_2',
             'answer' => 'Bright light makes it worse.',
-        ])->assertRedirect('/intake/assessment/result');
+        ])->assertRedirect('/intake/routing');
 
         $this->assertDatabaseHas('assessments', [
             'visit_id' => $visit->getKey(),
@@ -361,7 +357,7 @@ class AssessmentRoutingTest extends TestCase
             ->post('/intake/assessment', [
                 'question_key' => 'ai_1',
                 'answer' => 'It began yesterday and is getting worse.',
-            ])->assertRedirect('/intake/assessment/result');
+            ])->assertRedirect('/intake/routing');
 
         $this->assertDatabaseHas('assessments', [
             'visit_id' => $visit->getKey(),
@@ -444,7 +440,7 @@ class AssessmentRoutingTest extends TestCase
             ->post('/intake/assessment', [
                 'question_key' => 'ai_10',
                 'answer' => 'The final answer.',
-            ])->assertRedirect('/intake/assessment/result');
+            ])->assertRedirect('/intake/routing');
 
         $this->assertTrue($provider->mustComplete);
         $this->assertDatabaseHas('assessments', [

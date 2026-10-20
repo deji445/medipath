@@ -3,6 +3,7 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     ArrowRight,
+    Clock3,
     Plus,
     ShieldCheck,
     Trash2,
@@ -34,6 +35,11 @@ const props = defineProps<{
         sexAtBirth: string;
     } | null;
     history: History;
+    resumeJourney?: {
+        href: string;
+        patientName: string;
+        mainConcern: string;
+    } | null;
 }>();
 
 const showProfile = computed(() => Boolean(props.phoneNumber));
@@ -125,6 +131,43 @@ function removeMedication(index: number) {
 
             <div class="p-6 sm:p-8 lg:p-10">
                 <template v-if="!showProfile">
+                    <div
+                        v-if="resumeJourney"
+                        class="mb-7 rounded-xl border border-teal-200 bg-teal-50 p-4"
+                    >
+                        <div class="flex items-start gap-3">
+                            <Clock3
+                                class="mt-0.5 size-5 shrink-0 text-teal-800"
+                                aria-hidden="true"
+                            />
+                            <div class="min-w-0 flex-1">
+                                <p class="font-semibold text-teal-950">
+                                    Continue your saved intake
+                                </p>
+                                <p class="mt-1 text-sm text-teal-900/80">
+                                    {{ resumeJourney.patientName }} ·
+                                    {{ resumeJourney.mainConcern }}
+                                </p>
+                                <div
+                                    class="mt-4 flex flex-wrap items-center gap-4"
+                                >
+                                    <Button
+                                        as-child
+                                        class="bg-teal-700 text-white hover:bg-teal-800"
+                                    >
+                                        <Link :href="resumeJourney.href"
+                                            >Continue</Link
+                                        >
+                                    </Button>
+                                    <Link
+                                        href="/intake?restart=1"
+                                        class="text-sm font-medium text-teal-900 underline underline-offset-4"
+                                        >Start a new intake</Link
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <h1
                         class="max-w-lg text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
                     >
@@ -251,22 +294,10 @@ function removeMedication(index: number) {
                                     ] ?? 'Recorded'
                                 }}</strong>
                             </p>
-                            <label
-                                class="mt-4 flex items-start gap-3 text-sm leading-6"
-                                ><input
-                                    type="checkbox"
-                                    name="use_existing"
-                                    value="1"
-                                    required
-                                    class="mt-0.5 size-5 accent-teal-700"
-                                /><span
-                                    >This is the correct patient profile.</span
-                                ></label
-                            >
-                            <InputError
-                                class="mt-2"
-                                :message="errors.use_existing"
-                            />
+                            <p class="mt-4 text-sm leading-6 text-slate-600">
+                                If this is not the right profile, go back and
+                                use another mobile number.
+                            </p>
                         </section>
 
                         <section v-else class="grid gap-5 sm:grid-cols-2">

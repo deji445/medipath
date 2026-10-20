@@ -156,11 +156,7 @@ defineProps<{
                 >
                     <Button class="w-full sm:w-auto" :disabled="processing">
                         <Spinner v-if="processing" />
-                        {{
-                            processing
-                                ? 'Sending securely…'
-                                : 'Consent and send intake'
-                        }}
+                        {{ processing ? 'Sending securely…' : 'Send intake' }}
                         <ArrowRight
                             v-if="!processing"
                             class="size-4"

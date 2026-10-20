@@ -429,7 +429,7 @@ class PatientAssessmentController extends Controller
 
         return $visit->assessment?->status === AssessmentStatus::Failed
             ? to_route('assessment.result')
-            : to_route($isGroupedSubmission ? 'routing.index' : 'assessment.result');
+            : to_route('routing.index');
     }
 
     public function result(Request $request): Response|RedirectResponse
@@ -459,14 +459,7 @@ class PatientAssessmentController extends Controller
             return to_route('assessment.emergency');
         }
 
-        return Inertia::render('assessment/Result', [
-            'result' => [
-                'severity' => $assessment->severity?->value,
-                'recommendedAction' => $assessment->recommended_action?->value,
-                'summary' => $assessment->symptom_summary,
-                'reasonCodes' => $assessment->reason_codes,
-            ],
-        ]);
+        return to_route('routing.index');
     }
 
     public function recover(
@@ -657,7 +650,7 @@ class PatientAssessmentController extends Controller
 
         return $visit->assessment?->severity === SeverityLevel::High
             ? to_route('assessment.emergency')
-            : to_route('assessment.result');
+            : to_route('routing.index');
     }
 
     private function maxConversationQuestions(): int

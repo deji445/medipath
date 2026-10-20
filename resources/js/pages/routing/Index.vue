@@ -20,6 +20,7 @@ type Hospital = {
     capability: 'ER_CAPABLE' | 'CLINIC_ONLY';
     routingMode: 'AUTO' | 'MANUAL';
     distanceKm?: number | null;
+    availabilityUpdatedAt?: string | null;
     reasons: string[];
     recommended: boolean;
     requiresOverrideConfirmation: boolean;
@@ -48,6 +49,15 @@ const reasonLabels: Record<string, string> = {
     ABNORMAL_VITAL_SIGNS_REPORTED:
         'One or more recorded vital signs are outside the usual adult range',
 };
+
+function availabilityDate(value?: string | null): string | null {
+    if (!value) return null;
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
+}
 </script>
 
 <template>
@@ -114,9 +124,9 @@ const reasonLabels: Record<string, string> = {
                     Choose where to receive care
                 </h1>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    These hospitals can receive this assessment. They are ranked
-                    by suitability, availability, and distance when location
-                    coordinates are available.
+                    These facilities accept MediPath prototype submissions. They
+                    are ranked by clinical capability and straight-line distance
+                    when coordinates are available.
                 </p>
             </div>
         </div>
@@ -208,6 +218,26 @@ const reasonLabels: Record<string, string> = {
                                 <span>{{ reason }}</span>
                             </li>
                         </ul>
+                        <p class="mt-4 text-xs leading-5 text-slate-500">
+                            <template
+                                v-if="
+                                    availabilityDate(
+                                        hospital.availabilityUpdatedAt,
+                                    )
+                                "
+                            >
+                                Availability last updated
+                                {{
+                                    availabilityDate(
+                                        hospital.availabilityUpdatedAt,
+                                    )
+                                }}.
+                            </template>
+                            <template v-else>
+                                Availability update time is not recorded.
+                            </template>
+                            This is not live bed-capacity information.
+                        </p>
                     </div>
 
                     <Form

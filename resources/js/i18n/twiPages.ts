@@ -172,6 +172,12 @@ export const twiPageTranslations: Record<string, string> = {
     'Demo environment. Use dummy patient information only.':
         'Nhwɛso beae. Fa ayarefo ho nsɛm a ɛnyɛ nokware nko ara.',
     'Confirm the patient profile': 'Si ɔyarefo profile no pi',
+    'Continue your saved intake': 'Toa wo nsɛm a wɔakora no so',
+    'Start a new intake': 'Fi ɔyarefo nsɛm foforo ase',
+    'If this is not the right profile, go back and use another mobile number.':
+        'Sɛ eyi nyɛ profile a ɛfata a, san kɔ akyi na fa telefon nɔma foforo.',
+    'Draft saved in this tab': 'Wɔakora draft no wɔ tab yi mu',
+    'Unsaved concern restored': 'Wɔasan de ɔhaw a wɔankora no aba',
     'Returning patient found': 'Yɛahu ɔyarefo a waba pɛn',
     'Sex at birth:': 'Bɔbeasu wɔ awo mu:',
     'Confirm what is known now. “Not sure” is safer than guessing.':
@@ -206,6 +212,14 @@ export const twiPageTranslations: Record<string, string> = {
     'Vitals, if known': 'Nipadua nsɛnkyerɛnne, sɛ wonim a',
     'By continuing, you understand this is guidance, not a diagnosis, and agree to the use of these health details for this intake.':
         'Sɛ wotoa so a, wote ase sɛ eyi yɛ akwankyerɛ na ɛnyɛ yareɛ hunu, na wopene sɛ wɔde apɔwmuden nsɛm yi bedi dwuma ama intake yi.',
+    'These facilities accept MediPath prototype submissions. They are ranked by clinical capability and straight-line distance when coordinates are available.':
+        'Ayaresabea yi gye MediPath nhwɛso nsɛm. Wɔhyehyɛ wɔn sɛnea ayaresa tumi ne kwan tenten a wɔsusuw tee no te bere a beae nsɛm wɔ hɔ.',
+    'Availability last updated':
+        'Bere a etwa to a wɔsakraa sɛ wɔregye ayarefo:',
+    'Availability update time is not recorded.':
+        'Wɔankyerɛ bere a wɔsakraa gye tebea no.',
+    'This is not live bed-capacity information.':
+        'Eyi nyɛ mpa a ɛwɔ hɔ seesei ho nsɛm.',
 
     'Check in before you are seen': 'Kyerɛw wo ho ansa na wɔahu wo',
     'Complete a short intake on your phone. Your summary stays private until you review it and explicitly send it to this hospital.':

@@ -25,7 +25,7 @@ class StoreProfileRequest extends FormRequest
         $needsSexAtBirth = ! $hasMatch || in_array($savedSex, [null, SexAtBirth::Unknown->value], true);
 
         return [
-            'use_existing' => [$hasMatch ? 'accepted' : 'nullable'],
+            'use_existing' => ['nullable', 'boolean'],
             'first_name' => [Rule::requiredIf(! $hasMatch), 'nullable', 'string', 'max:80'],
             'last_name' => [Rule::requiredIf(! $hasMatch), 'nullable', 'string', 'max:80'],
             'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],
@@ -47,7 +47,6 @@ class StoreProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'use_existing.accepted' => 'Confirm that this is the correct patient profile.',
             'history_mode.required' => 'Choose whether the saved medical history is still correct.',
         ];
     }

@@ -9,7 +9,7 @@ import {
     Square,
     UserRound,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,7 @@ const mainComplaint = ref(String(props.visit?.main_complaint ?? ''));
 const speechSupported = ref(false);
 const isListening = ref(false);
 const speechStatus = ref('');
+const draftStatus = ref('');
 const latitude = ref<string>(String(props.visit?.latitude ?? ''));
 const longitude = ref<string>(String(props.visit?.longitude ?? ''));
 const locationPermissionGranted = ref(
@@ -82,6 +83,7 @@ const locationStatus = ref(
         : '',
 );
 let recognition: SpeechRecognitionInstance | null = null;
+const concernDraftKey = 'medipath:intake:current-concern';
 
 const concernLength = computed(() => mainComplaint.value.length);
 const fieldClass =
@@ -139,7 +141,44 @@ const useCurrentLocation = () => {
     );
 };
 
+function clearConcernDraft() {
+    try {
+        sessionStorage.removeItem(concernDraftKey);
+    } catch {
+        // Browsers may block storage in private or restricted contexts.
+    }
+}
+
+watch(mainComplaint, (value) => {
+    if (props.visit?.main_complaint) return;
+
+    try {
+        if (value.trim()) {
+            sessionStorage.setItem(concernDraftKey, value);
+            draftStatus.value = 'Draft saved in this tab';
+        } else {
+            clearConcernDraft();
+            draftStatus.value = '';
+        }
+    } catch {
+        draftStatus.value = '';
+    }
+});
+
 onMounted(() => {
+    if (!mainComplaint.value) {
+        try {
+            const savedConcern = sessionStorage.getItem(concernDraftKey);
+
+            if (savedConcern) {
+                mainComplaint.value = savedConcern.slice(0, 500);
+                draftStatus.value = 'Unsaved concern restored';
+            }
+        } catch {
+            draftStatus.value = '';
+        }
+    }
+
     const speechWindow = window as typeof window & {
         SpeechRecognition?: SpeechRecognitionConstructor;
         webkitSpeechRecognition?: SpeechRecognitionConstructor;
@@ -219,6 +258,7 @@ onBeforeUnmount(() => recognition?.abort());
             :method="formMethod ?? 'post'"
             class="space-y-8 p-6 sm:p-8"
             v-slot="{ errors, processing }"
+            @success="clearConcernDraft"
         >
             <input type="hidden" name="streamlined" value="1" />
             <input type="hidden" name="latitude" :value="latitude" />
@@ -281,6 +321,7 @@ onBeforeUnmount(() => recognition?.abort());
                     <p aria-live="polite">
                         {{
                             speechStatus ||
+                            draftStatus ||
                             'Type or use speech input if your browser supports it.'
                         }}
                     </p>

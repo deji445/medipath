@@ -510,9 +510,21 @@ class PatientIntakeTest extends TestCase
             ->assertRedirect('/intake');
 
         $this->post('/intake/profile', [
-            'use_existing' => '1',
             'history_mode' => 'UNCHANGED',
         ])->assertRedirect('/intake/visit');
+    }
+
+    public function test_an_interrupted_intake_can_be_resumed_from_the_start_page(): void
+    {
+        $visit = $this->createVisitReadyForAssessment();
+
+        $this->withSession(['active_visit_reference' => $visit->getKey()])
+            ->get('/intake')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('intake/Start')
+                ->where('resumeJourney.href', '/intake/assessment')
+                ->where('resumeJourney.mainConcern', 'Wheezing and shortness of breath'));
     }
 
     public function test_a_red_flag_immediately_creates_a_high_severity_emergency_result(): void

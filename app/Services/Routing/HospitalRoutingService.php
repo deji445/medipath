@@ -18,6 +18,7 @@ final class HospitalRoutingService
      *     capability: string,
      *     routingMode: string,
      *     distanceKm: float|null,
+     *     availabilityUpdatedAt: string|null,
      *     suitabilityRank: int,
      *     reasons: array<int, string>,
      *     recommended: bool
@@ -51,6 +52,7 @@ final class HospitalRoutingService
                     'capability' => $hospital->capability->value,
                     'routingMode' => $hospital->routing_mode->value,
                     'distanceKm' => $distance,
+                    'availabilityUpdatedAt' => $hospital->updated_at?->toIso8601String(),
                     'suitabilityRank' => $suitability,
                     'reasons' => $this->reasons($visit, $hospital, $severity, $distance),
                 ];
@@ -122,7 +124,7 @@ final class HospitalRoutingService
         $reasons[] = 'Currently accepting MediPath prototype submissions';
 
         if ($distance !== null) {
-            $reasons[] = number_format($distance, 1).' km from the supplied location';
+            $reasons[] = number_format($distance, 1).' km straight-line distance from the supplied location';
         } elseif ($visit->manual_location) {
             $reasons[] = 'Available for the entered area; live distance is unavailable';
         } else {

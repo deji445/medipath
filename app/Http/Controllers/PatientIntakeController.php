@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\AssessmentStatus;
 use App\Enums\ConsentType;
+use App\Enums\SeverityLevel;
 use App\Enums\SexAtBirth;
 use App\Enums\VisitStatus;
 use App\Http\Requests\Intake\LookupPatientRequest;
@@ -32,11 +33,19 @@ class PatientIntakeController extends Controller
     {
         if ($request->boolean('restart')) {
             $request->session()->forget('intake');
+            $request->session()->forget(['active_visit_reference', 'assessment_red_flags']);
         }
 
         $patientId = $request->session()->get('intake.patient_id');
         $patient = is_string($patientId)
             ? Patient::query()->with(['conditions', 'allergies', 'medications'])->find($patientId)
+            : null;
+
+        $activeReference = $request->session()->get('active_visit_reference');
+        $activeVisit = is_string($activeReference)
+            ? Visit::query()
+                ->with(['patient', 'assessment', 'preselectedHospital'])
+                ->find($activeReference)
             : null;
 
         return Inertia::render('intake/Start', [
@@ -51,6 +60,18 @@ class PatientIntakeController extends Controller
                 'medications' => $patient->medications->where('is_active', true)
                     ->map->only(['name', 'dose', 'frequency'])->values()->all(),
             ] : ['conditions' => [], 'allergies' => [], 'medications' => []],
+            'resumeJourney' => $activeVisit && ! $request->boolean('restart') ? [
+                'href' => $this->resumeHref($activeVisit),
+                'patientName' => $this->maskName(
+                    $activeVisit->patient->first_name,
+                    $activeVisit->patient->last_name,
+                ),
+                'mainConcern' => mb_substr(
+                    (string) ($activeVisit->intake_answers['main_complaint'] ?? 'Patient intake'),
+                    0,
+                    120,
+                ),
+            ] : null,
         ]);
     }
 
@@ -663,6 +684,29 @@ class PatientIntakeController extends Controller
             ->unique(fn (string $line): string => mb_strtolower($line))
             ->values()
             ->all();
+    }
+
+    private function resumeHref(Visit $visit): string
+    {
+        if ($visit->status === VisitStatus::Submitted) {
+            return route('submission.complete', absolute: false);
+        }
+
+        if ($visit->assessment?->status === AssessmentStatus::Complete) {
+            if ($visit->assessment->severity === SeverityLevel::High) {
+                return route('assessment.emergency', absolute: false);
+            }
+
+            return $visit->preselectedHospital
+                ? route('submission.review', absolute: false)
+                : route('routing.index', absolute: false);
+        }
+
+        if ($visit->assessment?->status === AssessmentStatus::Failed) {
+            return route('assessment.result', absolute: false);
+        }
+
+        return route('assessment.ready', absolute: false);
     }
 
     /** @return array<int, array{name: string, dose: string|null, frequency: string|null}> */
