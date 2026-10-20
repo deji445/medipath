@@ -18,11 +18,14 @@ class ConsultantChatController extends Controller
     {
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:1000'],
+            'history' => ['sometimes', 'array', 'max:10'],
+            'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required_with:history', 'string', 'max:2000'],
         ], [
             'message.required' => __('consultant.validation.required'),
             'message.max' => __('consultant.validation.max'),
         ]);
-        $messages = $this->sessionMessages($request);
+        $messages = $this->conversationMessages($request);
         $emergencyLocked = collect($messages)->contains(
             fn (array $message): bool => $message['role'] === 'assistant'
                 && $message['emergency'] === true,
@@ -308,6 +311,43 @@ class ConsultantChatController extends Controller
         }
 
         return $messages;
+    }
+
+    /**
+     * Prefer the visible browser transcript when it is at least as complete as
+     * the session transcript. Streaming responses can finish after Laravel's
+     * session middleware has already persisted the response, particularly on
+     * hosted runtimes, so the next message must not depend on that write alone.
+     *
+     * @return array<int, array{role: string, content: string, emergency: bool, red_flags: array<int, string>, first_aid_steps: array<int, string>}>
+     */
+    private function conversationMessages(Request $request): array
+    {
+        $sessionMessages = $this->sessionMessages($request);
+        $submittedHistory = $request->input('history', []);
+
+        if (! is_array($submittedHistory)) {
+            return $sessionMessages;
+        }
+
+        $browserMessages = collect(array_slice($submittedHistory, -10))
+            ->filter(fn (mixed $message): bool => is_array($message)
+                && in_array($message['role'] ?? null, ['user', 'assistant'], true)
+                && is_string($message['content'] ?? null)
+                && trim($message['content']) !== '')
+            ->map(fn (array $message): array => [
+                'role' => (string) $message['role'],
+                'content' => trim($message['content']),
+                'emergency' => false,
+                'red_flags' => [],
+                'first_aid_steps' => [],
+            ])
+            ->values()
+            ->all();
+
+        return count($browserMessages) >= count($sessionMessages)
+            ? $browserMessages
+            : $sessionMessages;
     }
 
     /** @return array{label: mixed, phone: mixed} */

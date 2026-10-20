@@ -347,7 +347,10 @@ async function submitChat(): Promise<void> {
                 'X-CSRF-TOKEN': csrfToken(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({
+                message,
+                history: previousMessages.slice(-10),
+            }),
         });
 
         if (!response.ok) {

@@ -10,7 +10,7 @@ return [
         'bms' => [
             'endpoint' => env('BMS_SMS_ENDPOINT', 'https://api.mnotify.com/api/sms/quick'),
             'api_key' => env('BMS_API_KEY'),
-            'sender_id' => env('BMS_SENDER_ID', 'MediPath'),
+            'sender_id' => env('BMS_SENDER_ID', 'medipath'),
             'connect_timeout' => (int) env('BMS_CONNECT_TIMEOUT', 5),
             'timeout' => (int) env('BMS_TIMEOUT', 10),
         ],

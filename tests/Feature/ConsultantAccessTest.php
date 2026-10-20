@@ -639,6 +639,44 @@ class ConsultantAccessTest extends TestCase
         Http::assertSent(fn ($request): bool => is_array($request['contents']));
     }
 
+    public function test_the_event_stream_uses_visible_chat_history_when_the_session_is_missing(): void
+    {
+        config()->set([
+            'medipath.assessment.gemini.api_key' => 'test-key',
+            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/generate-content',
+        ]);
+        Http::fake([
+            'https://example.test/generate-content' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [
+                        ['text' => 'Has the foot pain become worse during that week?'],
+                    ]],
+                ]],
+            ]),
+        ]);
+
+        $response = $this->post('/consultant/chat/stream', [
+            'message' => 'It has been a week.',
+            'history' => [
+                ['role' => 'user', 'content' => 'My feet hurt.'],
+                ['role' => 'assistant', 'content' => 'How long have your feet hurt?'],
+            ],
+        ], ['Accept' => 'text/event-stream']);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'Has the foot pain become worse during that week?',
+            $response->streamedContent(),
+        );
+        Http::assertSent(fn ($request): bool => data_get(
+            $request->data(),
+            'contents.0.parts.0.text',
+        ) === 'My feet hurt.' && data_get(
+            $request->data(),
+            'contents.2.parts.0.text',
+        ) === 'It has been a week.');
+    }
+
     public function test_the_event_stream_retries_a_temporary_service_failure(): void
     {
         config()->set([
