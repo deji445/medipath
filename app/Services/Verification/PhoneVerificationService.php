@@ -14,6 +14,7 @@ class PhoneVerificationService
     /** @return array{challenge: array<string, int|string>, demo_code: string|null} */
     public function issue(string $phoneNumber): array
     {
+        $driver = (string) config('medipath.phone_verification.driver');
         $configuredDemoCode = config('medipath.phone_verification.demo_code');
         $code = is_string($configuredDemoCode) && preg_match('/^\d{6}$/', $configuredDemoCode)
             ? $configuredDemoCode
@@ -33,8 +34,8 @@ class PhoneVerificationService
                     (int) config('medipath.phone_verification.expiry_minutes', 10),
                 )->toIso8601String(),
             ],
-            'demo_code' => config('medipath.phone_verification.driver') === 'local'
-                && ! app()->isProduction() ? $code : null,
+            'demo_code' => $driver === 'demo'
+                || ($driver === 'local' && ! app()->isProduction()) ? $code : null,
         ];
     }
 

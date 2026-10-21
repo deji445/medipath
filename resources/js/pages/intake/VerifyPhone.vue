@@ -79,13 +79,14 @@ onMounted(() => {
                     v-if="demoCode"
                     class="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
                 >
-                    <p class="font-semibold">Local demo code</p>
+                    <p class="font-semibold">Demo verification code</p>
                     <p class="mt-1">
                         Use
                         <strong class="font-mono text-base tracking-widest">{{
                             demoCode
                         }}</strong
-                        >. This callout is disabled in production.
+                        >. Demo mode does not verify ownership of this phone
+                        number.
                     </p>
                 </div>
 

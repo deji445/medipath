@@ -194,10 +194,10 @@ export const twiPageTranslations: Record<string, string> = {
     'Add another medicine': 'Fa aduru foforo ka ho',
     'Verify your phone': 'Si wo telefon nɔma pi',
     'We sent a 6-digit code to': 'Yɛde nɔma nsia code amane akɔ',
-    'Local demo code': 'Local nhwɛso code',
+    'Demo verification code': 'Nhweɛso verification code',
     Use: 'Fa',
-    '. This callout is disabled in production.':
-        '. Wɔayi eyi afi production mu.',
+    '. Demo mode does not verify ownership of this phone number.':
+        '. Nhweɛso kwan yi nkyerɛ sɛ telefon nɔma no yɛ wo dea.',
     'Verification code': 'Code a wode besi pi',
     'Never share this code with anyone.': 'Mfa code yi mma obiara.',
     'Resend code': 'San mane code',

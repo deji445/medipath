@@ -34,7 +34,8 @@ final class GeminiConsultant
 
         $startedAt = hrtime(true);
         $attemptCount = 0;
-        $model = (string) config('medipath.assessment.gemini.consultant_model');
+        $models = $this->consultantModels();
+        $model = $models[0];
 
         try {
             $this->circuitBreaker->beforeRequest();
@@ -44,11 +45,6 @@ final class GeminiConsultant
                 throw new RuntimeException('GEMINI_API_KEY_MISSING');
             }
 
-            $endpoint = str_replace(
-                '{model}',
-                rawurlencode($model),
-                (string) config('medipath.assessment.gemini.consultant_endpoint'),
-            );
             $response = null;
             $lastConnectionException = null;
             $maxAttempts = max(1, min(
@@ -58,6 +54,12 @@ final class GeminiConsultant
 
             for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                 $attemptCount = $attempt;
+                $model = $models[min($attempt - 1, count($models) - 1)];
+                $endpoint = str_replace(
+                    '{model}',
+                    rawurlencode($model),
+                    (string) config('medipath.assessment.gemini.consultant_endpoint'),
+                );
 
                 try {
                     $response = Http::acceptJson()
@@ -449,6 +451,19 @@ final class GeminiConsultant
         }
 
         return 'GEMINI_UNEXPECTED_FAILURE';
+    }
+
+    /** @return array<int, string> */
+    private function consultantModels(): array
+    {
+        $models = array_filter([
+            trim((string) config('medipath.assessment.gemini.consultant_model')),
+            trim((string) config('medipath.assessment.gemini.consultant_fallback_model')),
+        ]);
+
+        $models = array_values(array_unique($models));
+
+        return $models === [] ? ['gemini-3.5-flash-lite'] : $models;
     }
 
     /**

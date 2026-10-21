@@ -75,6 +75,12 @@ defineProps<{
                 <Spinner v-if="processing" />
                 Log in
             </Button>
+
+            <p class="text-center text-sm leading-6 text-muted-foreground">
+                Forgot your staff password? Ask a MediPath administrator to
+                reset your access. Hospital administrators can add staff from
+                Staff access after signing in.
+            </p>
         </div>
     </Form>
 </template>

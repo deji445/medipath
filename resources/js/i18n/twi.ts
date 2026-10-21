@@ -90,6 +90,17 @@ export const twiTranslations: Record<string, string> = {
 
     'One clear path from concern to care.':
         'Ɔhaw biara nya ɔkwan a emu da hɔ kɔ ayaresa mu.',
+    'From symptoms to the right next step.':
+        'Fi wo yare ho nsɛnkyerɛnne so kɔ anammɔn a ɛdi hɔ no so.',
+    'Share what is happening. Get clear urgency guidance and a hospital-ready summary.':
+        'Ka nea ɛrekɔ so no. Nya akwankyerɛ a emu da hɔ ne nsɛm tiawa a wobetumi de akɔ ayaresabea.',
+    'Start intake': 'Fi nsɛm a wobegye no ase',
+    'Ask the AI consultant': 'Bisa AI ɔhwɛfo no',
+    'Nothing is sent to a hospital without your consent.':
+        'Yɛremfa biribiara nkɔ ayaresabea gye sɛ woapene so.',
+    'One guided care journey.': 'Ayaresa kwan baako a yɛkyerɛ wo kwan.',
+    'Choose a capable hospital': 'Yi ayaresabea a ɛbɛtumi ahwɛ wo',
+    'Guidance, not a diagnosis.': 'Akwankyerɛ, ɛnyɛ yare ho gyinaesi.',
     'Describe what is happening once. MediPath turns it into structured urgency guidance and a hospital-ready care summary.':
         'Ka nea ɛrekɔ so no pɛnkoro. MediPath bɛyɛ no akwankyerɛ a ɛkyerɛ sɛnea ɛyɛ ntɛm ne nsɛm tiawa a wɔde bɛkɔ ayaresabea.',
     'Start patient intake': 'Fi ɔyarefo nsɛm ase',
@@ -113,6 +124,8 @@ export const twiTranslations: Record<string, string> = {
         'Ayaresabea a ɛfata ne pene a wode ma.',
     'Use AI for a low-risk health question or ask for a real consultant to contact you. For urgent symptoms, call 112 or use emergency help.':
         'Fa AI bisa apɔwmuden ho asɛm a asiane nnim, anaa ka sɛ ɔhwɛfo ankasa ne wo nni nkitaho. Sɛ tebea no yɛ ntɛm a, frɛ 112 anaa bue mmoa a ɛyɛ ntɛm.',
+    'Ask a low-risk health question or request a callback. For emergencies, call 112.':
+        'Bisa apɔwmuden asɛm a emu asiane sua anaa bisa sɛ wɔmfrɛ wo. Sɛ ɛyɛ ntɛm a, frɛ 112.',
     'AI consultant': 'AI ɔhwɛfo',
     'Real consultant': 'Ɔhwɛfo ankasa',
     'Message for the AI consultant': 'Asɛm a ɛkɔ AI ɔhwɛfo no nkyɛn',
@@ -150,6 +163,10 @@ export const twiTranslations: Record<string, string> = {
     'Mobile-first intake with Ghanaian phone formatting.':
         'Telefon so nsɛm a Ghana telefon nɔma nhyehyɛe ka ho.',
     'Safety rules before AI': 'Ahobammɔ mmara di AI anim',
+    'Emergency checks before AI':
+        'Ntɛm tebea nhwehwɛmu ba ansa na AI adi dwuma',
+    'Consent before hospital sharing':
+        'Pene so ansa na wɔne ayaresabea akyɛ nsɛm',
     'Emergency warning signs interrupt the ordinary flow.':
         'Sɛ yɛhu asiane kɛse ho nsɛnkyerɛnne a, yɛgyae ɔkwan biasa no.',
     'Structured for the receiving team':

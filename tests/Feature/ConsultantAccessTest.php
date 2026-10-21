@@ -681,7 +681,9 @@ class ConsultantAccessTest extends TestCase
     {
         config()->set([
             'medipath.assessment.gemini.api_key' => 'test-key',
-            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/generate-content',
+            'medipath.assessment.gemini.consultant_model' => 'primary-flash',
+            'medipath.assessment.gemini.consultant_fallback_model' => 'fallback-flash',
+            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/models/{model}:generate-content',
             'medipath.assessment.gemini.retry_delay_ms' => 0,
         ]);
         Http::fakeSequence()
@@ -701,6 +703,8 @@ class ConsultantAccessTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('How long has it hurt?', $response->streamedContent());
         Http::assertSentCount(2);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://example.test/models/primary-flash:generate-content');
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://example.test/models/fallback-flash:generate-content');
         $this->assertDatabaseHas('ai_request_events', [
             'feature' => 'consultant_chat',
             'outcome' => 'SUCCEEDED',

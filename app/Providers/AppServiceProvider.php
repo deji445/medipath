@@ -11,6 +11,7 @@ use App\Services\Assessment\DeterministicAssessmentProvider;
 use App\Services\Assessment\GeminiAssessmentConversationProvider;
 use App\Services\Assessment\GeminiAssessmentProvider;
 use App\Services\Verification\BmsPhoneVerificationSender;
+use App\Services\Verification\DemoPhoneVerificationSender;
 use App\Services\Verification\LocalPhoneVerificationSender;
 use App\Services\Verification\NaloPhoneVerificationSender;
 use App\Support\TenantContext;
@@ -32,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PhoneVerificationSender::class, function ($app): PhoneVerificationSender {
             return match (config('medipath.phone_verification.driver')) {
                 'local' => $app->make(LocalPhoneVerificationSender::class),
+                'demo' => $app->make(DemoPhoneVerificationSender::class),
                 'bms' => $app->make(BmsPhoneVerificationSender::class),
                 'nalo' => $app->make(NaloPhoneVerificationSender::class),
                 default => throw new \RuntimeException('Unsupported phone verification driver.'),

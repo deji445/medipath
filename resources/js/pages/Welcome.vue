@@ -114,15 +114,6 @@ const staffWorkspaceLabel = computed(() => {
         ? 'Hospital network'
         : 'Admissions dashboard';
 });
-const staffWorkspaceActionLabel = computed(() => {
-    const user = page.props.auth.user;
-
-    if (!user) return 'Open staff workspace';
-
-    return user.role === 'SUPER_ADMIN'
-        ? 'Open hospital network'
-        : 'Open admissions dashboard';
-});
 const pageRoot = useTemplateRef<HTMLElement>('pageRoot');
 const heroScene = useTemplateRef<HTMLElement>('heroScene');
 const consultPanel = useTemplateRef<HTMLElement>('consultPanel');
@@ -196,17 +187,14 @@ const activeConsultTab = ref<'ai' | 'human'>(
 const journey = [
     {
         title: 'Tell us what is happening',
-        description: 'Patient details, history, and the current concern.',
         icon: ClipboardCheck,
     },
     {
         title: 'Understand the urgency',
-        description: 'Safety rules and AI-supported triage guidance.',
         icon: Stethoscope,
     },
     {
-        title: 'Choose the next care step',
-        description: 'Capability-aware hospital matching and consent.',
+        title: 'Choose a capable hospital',
         icon: Hospital,
     },
 ];
@@ -975,118 +963,94 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div
-                    class="mx-auto grid max-w-7xl items-stretch gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-20"
+                    class="mx-auto grid min-h-[calc(100svh-73px)] max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.18fr_0.82fr] lg:gap-20 lg:py-24"
                 >
                     <section class="relative z-10 flex flex-col justify-center">
                         <h1
                             data-motion="hero-title"
-                            class="max-w-3xl text-5xl leading-[0.98] font-semibold tracking-[-0.04em] text-balance text-[#173a33] sm:text-6xl"
+                            class="max-w-3xl text-5xl leading-[0.98] font-semibold tracking-[-0.035em] text-balance text-[#173a33] sm:text-6xl lg:text-[4.5rem]"
                         >
-                            One clear path from concern to care.
+                            From symptoms to the right next step.
                         </h1>
                         <p
                             data-motion="hero-support"
-                            class="mt-7 max-w-2xl text-lg leading-8 text-[#516c64] sm:text-xl"
+                            class="mt-7 max-w-xl text-lg leading-8 text-[#45635b] sm:text-xl"
                         >
-                            Describe what is happening once. MediPath turns it
-                            into structured urgency guidance and a
-                            hospital-ready care summary.
+                            Share what is happening. Get clear urgency guidance
+                            and a hospital-ready summary.
                         </p>
 
                         <div
                             data-motion="hero-support"
-                            class="mt-9 flex flex-col gap-3 sm:flex-row"
+                            class="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center"
                         >
                             <Button
                                 as-child
                                 size="lg"
-                                class="h-12 bg-[#197f6d] px-6 text-base text-white shadow-[0_12px_28px_-14px_rgba(25,127,109,0.8)] hover:bg-[#116655]"
+                                class="h-12 bg-[#197f6d] px-7 text-base text-white shadow-[0_14px_32px_-18px_rgba(17,102,85,0.85)] hover:bg-[#116655]"
                             >
                                 <Link href="/intake">
-                                    Start patient intake
+                                    Start intake
                                     <ArrowRight
                                         class="size-4"
                                         aria-hidden="true"
                                     />
                                 </Link>
                             </Button>
-                            <Button
-                                as-child
-                                size="lg"
-                                variant="outline"
-                                class="h-12 border-[#8eaea3] bg-white px-6 text-base text-[#244a41] hover:border-[#197f6d] hover:bg-[#f7faf8] hover:text-[#116655]"
+                            <a
+                                href="#consult"
+                                class="inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-base font-semibold text-[#244a41] underline decoration-[#9abbb0] underline-offset-8 outline-none transition-colors hover:text-[#116655] hover:decoration-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
                             >
-                                <a href="#consult">
-                                    Ask a consultant
-                                    <MessageCircle
-                                        class="size-4"
-                                        aria-hidden="true"
-                                    />
-                                </a>
-                            </Button>
-                            <Button
-                                as-child
-                                size="lg"
-                                variant="outline"
-                                class="h-12 border-[#c6d8d1] bg-white/85 px-6 text-base text-[#365a51] hover:bg-white"
-                            >
-                                <Link :href="staffWorkspaceHref">{{
-                                    staffWorkspaceActionLabel
-                                }}</Link>
-                            </Button>
+                                Ask the AI consultant
+                                <MessageCircle
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />
+                            </a>
                         </div>
 
                         <div
                             data-motion="hero-support"
-                            class="mt-9 flex max-w-2xl items-start gap-3 border-t border-[#d2e2dc] pt-6 text-sm leading-6 text-[#516c64]"
+                            class="mt-10 flex max-w-xl items-center gap-3 text-sm leading-6 text-[#516c64]"
                         >
                             <ShieldCheck
-                                class="mt-0.5 size-5 shrink-0 text-[#197f6d]"
+                                class="size-5 shrink-0 text-[#197f6d]"
                                 aria-hidden="true"
                             />
                             <p>
-                                Your information is not shared with a hospital
-                                until you explicitly choose one and consent.
-                                MediPath provides urgency guidance, not a
-                                diagnosis.
+                                Nothing is sent to a hospital without your
+                                consent.
                             </p>
                         </div>
                     </section>
 
                     <section
-                        class="relative z-10 overflow-hidden rounded-[2rem] border border-[#bfd8cf] bg-white/95 shadow-[0_28px_70px_-40px_rgba(22,53,47,0.62)]"
+                        class="relative z-10 py-4 lg:pl-8"
                         aria-labelledby="journey-title"
                     >
-                        <div
-                            class="border-b border-[#bfd8cf] bg-[#e7f1ed] p-7 sm:p-9"
-                        >
+                        <div class="border-b border-[#b9d1c8] pb-6">
                             <h2
                                 id="journey-title"
-                                class="max-w-md text-2xl leading-tight font-semibold tracking-tight text-[#173a33] sm:text-3xl"
+                                class="max-w-sm text-2xl leading-tight font-semibold tracking-[-0.025em] text-[#173a33] sm:text-3xl"
                             >
-                                Your information moves forward. You stay in
-                                control.
+                                One guided care journey.
                             </h2>
-                            <p class="mt-3 max-w-lg leading-7 text-[#45635b]">
-                                A single guided journey connects the patient’s
-                                story to the team preparing to receive them.
-                            </p>
                         </div>
 
-                        <ol class="relative p-7 sm:p-9">
+                        <ol class="relative py-7">
                             <span
                                 data-motion="care-line"
-                                class="absolute top-12 bottom-12 left-[3.2rem] w-px bg-[#b9cfE6] sm:left-[4.2rem]"
+                                class="absolute top-12 bottom-12 left-6 w-px bg-[#9fc3b7]"
                                 aria-hidden="true"
                             />
                             <li
                                 v-for="(step, index) in journey"
                                 :key="step.title"
                                 data-motion="care-step"
-                                class="relative grid grid-cols-[48px_1fr] gap-5 pb-8 last:pb-0"
+                                class="relative grid grid-cols-[48px_1fr] items-center gap-5 pb-8 last:pb-0"
                             >
                                 <div
-                                    class="z-10 flex size-12 items-center justify-center rounded-xl border border-[#bfd8cf] bg-white text-[#197f6d] shadow-sm"
+                                    class="z-10 flex size-12 items-center justify-center rounded-xl bg-[#f8fbf9] text-[#197f6d] ring-1 ring-[#b9d1c8]"
                                 >
                                     <component
                                         :is="step.icon"
@@ -1094,8 +1058,8 @@ onBeforeUnmount(() => {
                                         aria-hidden="true"
                                     />
                                 </div>
-                                <div class="pt-0.5">
-                                    <div class="flex items-center gap-3">
+                                <div>
+                                    <div class="flex items-baseline gap-3">
                                         <span
                                             class="text-xs font-semibold text-[#197f6d] tabular-nums"
                                             >0{{ index + 1 }}</span
@@ -1106,14 +1070,14 @@ onBeforeUnmount(() => {
                                             {{ step.title }}
                                         </h3>
                                     </div>
-                                    <p
-                                        class="mt-2 text-sm leading-6 text-[#60766f]"
-                                    >
-                                        {{ step.description }}
-                                    </p>
                                 </div>
                             </li>
                         </ol>
+                        <p
+                            class="border-t border-[#b9d1c8] pt-5 text-sm text-[#516c64]"
+                        >
+                            Guidance, not a diagnosis.
+                        </p>
                     </section>
                 </div>
             </div>
@@ -1134,10 +1098,9 @@ onBeforeUnmount(() => {
                             >
                                 Start with a conversation.
                             </h2>
-                            <p class="mt-4 max-w-md leading-7 text-[#c9e2d9]">
-                                Use AI for a low-risk health question or ask for
-                                a real consultant to contact you. For urgent
-                                symptoms, call 112 or use emergency help.
+                            <p class="mt-4 max-w-sm leading-7 text-[#c9e2d9]">
+                                Ask a low-risk health question or request a
+                                callback. For emergencies, call 112.
                             </p>
                             <Link
                                 href="/emergency"
@@ -1702,7 +1665,7 @@ onBeforeUnmount(() => {
                                         class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
                                     >
                                         <p class="font-semibold">
-                                            Local demo code
+                                            Demo verification code
                                         </p>
                                         <p class="mt-1">
                                             Use
@@ -1711,8 +1674,8 @@ onBeforeUnmount(() => {
                                                 >{{
                                                     callbackVerification.demoCode
                                                 }}</strong
-                                            >. This callout is disabled in
-                                            production.
+                                            >. Demo mode does not verify
+                                            ownership of this phone number.
                                         </p>
                                     </div>
 
@@ -1882,33 +1845,11 @@ onBeforeUnmount(() => {
 
             <section class="border-y border-[#d2e2dc] bg-[#f8fbf9]">
                 <div
-                    class="mx-auto grid max-w-7xl divide-y divide-[#d2e2dc] px-5 sm:px-8 md:grid-cols-3 md:divide-x md:divide-y-0"
+                    class="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-sm font-semibold text-[#365a51] sm:px-8 md:flex-row md:items-center md:justify-between md:gap-8"
                 >
-                    <div class="py-6 md:pr-8">
-                        <p class="font-semibold text-slate-950">
-                            Built for Ghanaian care journeys
-                        </p>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                            Mobile-first intake with Ghanaian phone formatting.
-                        </p>
-                    </div>
-                    <div class="py-6 md:px-8">
-                        <p class="font-semibold text-slate-950">
-                            Safety rules before AI
-                        </p>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                            Emergency warning signs interrupt the ordinary flow.
-                        </p>
-                    </div>
-                    <div class="py-6 md:pl-8">
-                        <p class="font-semibold text-slate-950">
-                            Structured for the receiving team
-                        </p>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                            Hospitals receive a concise, consented patient
-                            summary.
-                        </p>
-                    </div>
+                    <p>Built for Ghanaian care journeys</p>
+                    <p>Emergency checks before AI</p>
+                    <p>Consent before hospital sharing</p>
                 </div>
             </section>
         </main>

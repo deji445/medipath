@@ -132,6 +132,21 @@ class PatientIntakeTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_demo_verification_displays_the_code_without_sending_an_sms(): void
+    {
+        config()->set('medipath.phone_verification.driver', 'demo');
+
+        $this->post('/intake/lookup', ['phone_number' => '0241234567'])
+            ->assertRedirect('/intake/verify-phone')
+            ->assertSessionHas('intake.demo_verification_code', '123456');
+
+        $this->get('/intake/verify-phone')->assertOk()->assertInertia(
+            fn (Assert $page) => $page
+                ->component('intake/VerifyPhone')
+                ->where('demoCode', '123456'),
+        );
+    }
+
     protected function tearDown(): void
     {
         CarbonImmutable::setTestNow();
