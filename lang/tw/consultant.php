@@ -10,6 +10,7 @@ return [
         'connection' => 'Gemini antumi amma mmuae ntɛm. Wo nkra no da so wɔ hɔ, enti san sɔ hwɛ.',
         'unavailable' => 'Gemini redi dwuma pii seesei. San sɔ hwɛ bere tiawa bi akyi.',
         'rate_limited' => 'Gemini anya abisade pii wɔ bere tiawa mu. Twɛn simma kakra na san sɔ hwɛ.',
+        'models_unavailable' => 'AI nhyehyɛe no ntumi nyɛ adwuma bere tiawa bi. Wo nkra no da so wɔ hɔ, enti san sɔ hwɛ bio.',
         'not_configured' => 'Wɔnnhyehyɛɛ AI ɔhwɛfo no wiei. Wubetumi asrɛ ɔhwɛfo ankasa.',
         'circuit_open' => 'Gemini ntumi nyɛ adwuma seesei efisɛ mfomso aba mpɛn pii. Twɛn simma biako anaa srɛ ɔhwɛfo ankasa.',
         'default' => 'AI ɔhwɛfo no ntumi nyɛ adwuma seesei. San sɔ hwɛ anaa srɛ ɔhwɛfo ankasa.',

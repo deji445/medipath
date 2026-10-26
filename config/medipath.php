@@ -29,7 +29,7 @@ return [
         'gemini' => [
             'api_key' => env('GEMINI_API_KEY'),
             'model' => env('GEMINI_ASSESSMENT_MODEL', 'gemini-3.5-flash-lite'),
-            'consultant_model' => env('GEMINI_CONSULTANT_MODEL', 'gemini-3.5-flash-lite'),
+            'consultant_model' => env('GEMINI_CONSULTANT_MODEL', 'gemini-flash-lite-latest'),
             'consultant_fallback_model' => env('GEMINI_CONSULTANT_FALLBACK_MODEL', 'gemini-2.5-flash-lite'),
             'consultant_endpoint' => env(
                 'GEMINI_CONSULTANT_ENDPOINT',

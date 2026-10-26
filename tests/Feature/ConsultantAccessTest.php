@@ -712,4 +712,74 @@ class ConsultantAccessTest extends TestCase
             'retry_count' => 1,
         ]);
     }
+
+    public function test_the_event_stream_uses_the_fallback_model_when_the_primary_model_is_missing(): void
+    {
+        config()->set([
+            'medipath.assessment.gemini.api_key' => 'test-key',
+            'medipath.assessment.gemini.consultant_model' => 'missing-primary',
+            'medipath.assessment.gemini.consultant_fallback_model' => 'stable-fallback',
+            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/models/{model}:generate-content',
+            'medipath.assessment.gemini.retry_delay_ms' => 0,
+        ]);
+        Http::fake([
+            'https://example.test/models/missing-primary:generate-content' => Http::response([], 404),
+            'https://example.test/models/stable-fallback:generate-content' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [
+                        ['text' => 'Has anything made the discomfort better?'],
+                    ]],
+                ]],
+            ]),
+        ]);
+
+        $response = $this->post('/consultant/chat/stream', [
+            'message' => 'I have mild discomfort.',
+        ], ['Accept' => 'text/event-stream']);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'Has anything made the discomfort better?',
+            $response->streamedContent(),
+        );
+        Http::assertSentCount(2);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://example.test/models/missing-primary:generate-content');
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://example.test/models/stable-fallback:generate-content');
+        $this->assertDatabaseHas('ai_request_events', [
+            'feature' => 'consultant_chat',
+            'model' => 'stable-fallback',
+            'outcome' => 'SUCCEEDED',
+            'attempt_count' => 2,
+        ]);
+    }
+
+    public function test_missing_models_return_a_specific_error_without_opening_the_provider_circuit(): void
+    {
+        config()->set([
+            'medipath.assessment.gemini.api_key' => 'test-key',
+            'medipath.assessment.gemini.consultant_model' => 'missing-primary',
+            'medipath.assessment.gemini.consultant_fallback_model' => 'missing-fallback',
+            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/models/{model}:generate-content',
+            'medipath.assessment.gemini.retry_delay_ms' => 0,
+            'medipath.assessment.gemini.circuit_failure_threshold' => 1,
+        ]);
+        Http::fake(fn () => Http::response([], 404));
+
+        $firstResponse = $this->post('/consultant/chat/stream', [
+            'message' => 'I have mild discomfort.',
+        ], ['Accept' => 'text/event-stream']);
+        $secondResponse = $this->post('/consultant/chat/stream', [
+            'message' => 'I still have mild discomfort.',
+        ], ['Accept' => 'text/event-stream']);
+
+        $this->assertStringContainsString(
+            'The AI models are temporarily unavailable.',
+            $firstResponse->streamedContent(),
+        );
+        $this->assertStringContainsString(
+            'The AI models are temporarily unavailable.',
+            $secondResponse->streamedContent(),
+        );
+        Http::assertSentCount(4);
+    }
 }

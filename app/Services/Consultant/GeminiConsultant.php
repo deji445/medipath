@@ -107,13 +107,17 @@ final class GeminiConsultant
                     break;
                 }
 
-                if ($this->isTransientStatus($response->status()) && $attempt < $maxAttempts) {
+                if ($this->shouldTryAnotherModel($response->status()) && $attempt < $maxAttempts) {
                     $this->pauseBeforeRetry($attempt);
 
                     continue;
                 }
 
-                throw new RuntimeException($this->errorCodeFor($response->status()));
+                throw new RuntimeException(
+                    $response->status() === 404
+                        ? 'GEMINI_MODELS_UNAVAILABLE'
+                        : $this->errorCodeFor($response->status()),
+                );
             }
 
             if ($response === null) {
@@ -132,7 +136,7 @@ final class GeminiConsultant
             }
 
             $this->circuitBreaker->recordSuccess();
-            $this->requestRecorder->record(
+            $this->requestRecorder->recordDeferred(
                 'consultant_chat',
                 $model,
                 'SUCCEEDED',
@@ -145,7 +149,7 @@ final class GeminiConsultant
             $errorCode = $this->controlledErrorCode($exception);
 
             $this->circuitBreaker->recordFailure($errorCode);
-            $this->requestRecorder->record(
+            $this->requestRecorder->recordDeferred(
                 'consultant_chat',
                 $model,
                 'FAILED',
@@ -173,7 +177,8 @@ final class GeminiConsultant
 
         $startedAt = hrtime(true);
         $attemptCount = 0;
-        $model = (string) config('medipath.assessment.gemini.consultant_model');
+        $models = $this->consultantModels();
+        $model = $models[0];
 
         try {
             $this->circuitBreaker->beforeRequest();
@@ -193,6 +198,7 @@ final class GeminiConsultant
 
             for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                 $attemptCount = $attempt;
+                $model = $models[min($attempt - 1, count($models) - 1)];
 
                 try {
                     $response = Http::acceptJson()
@@ -232,7 +238,7 @@ final class GeminiConsultant
                     break;
                 }
 
-                if ($this->isTransientStatus($response->status()) && $attempt < $maxAttempts) {
+                if ($this->shouldTryAnotherModel($response->status()) && $attempt < $maxAttempts) {
                     $this->pauseBeforeRetry($attempt);
 
                     continue;
@@ -242,7 +248,11 @@ final class GeminiConsultant
                     'status' => $response->status(),
                 ]);
 
-                throw new RuntimeException($this->errorCodeFor($response->status()));
+                throw new RuntimeException(
+                    $response->status() === 404
+                        ? 'GEMINI_MODELS_UNAVAILABLE'
+                        : $this->errorCodeFor($response->status()),
+                );
             }
 
             if ($response === null) {
@@ -270,7 +280,7 @@ final class GeminiConsultant
 
                         if ($text !== '') {
                             $this->circuitBreaker->recordSuccess();
-                            $this->requestRecorder->record(
+                            $this->requestRecorder->recordDeferred(
                                 'consultant_chat',
                                 $model,
                                 'SUCCEEDED',
@@ -289,7 +299,7 @@ final class GeminiConsultant
             $errorCode = $this->controlledErrorCode($exception);
 
             $this->circuitBreaker->recordFailure($errorCode);
-            $this->requestRecorder->record(
+            $this->requestRecorder->recordDeferred(
                 'consultant_chat',
                 $model,
                 'FAILED',
@@ -320,7 +330,8 @@ final class GeminiConsultant
 
         $startedAt = hrtime(true);
         $attemptCount = 0;
-        $model = (string) config('medipath.assessment.gemini.consultant_model');
+        $models = $this->consultantModels();
+        $model = $models[0];
 
         try {
             $this->circuitBreaker->beforeRequest();
@@ -340,6 +351,7 @@ final class GeminiConsultant
 
             for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                 $attemptCount = $attempt;
+                $model = $models[min($attempt - 1, count($models) - 1)];
 
                 try {
                     $response = Http::accept('text/event-stream')
@@ -381,13 +393,17 @@ final class GeminiConsultant
                     break;
                 }
 
-                if ($this->isTransientStatus($response->status()) && $attempt < $maxAttempts) {
+                if ($this->shouldTryAnotherModel($response->status()) && $attempt < $maxAttempts) {
                     $this->pauseBeforeRetry($attempt);
 
                     continue;
                 }
 
-                throw new RuntimeException($this->errorCodeFor($response->status()));
+                throw new RuntimeException(
+                    $response->status() === 404
+                        ? 'GEMINI_MODELS_UNAVAILABLE'
+                        : $this->errorCodeFor($response->status()),
+                );
             }
 
             if ($response === null) {
@@ -409,7 +425,7 @@ final class GeminiConsultant
             }
 
             $this->circuitBreaker->recordSuccess();
-            $this->requestRecorder->record(
+            $this->requestRecorder->recordDeferred(
                 'consultant_chat_stream',
                 $model,
                 'SUCCEEDED',
@@ -422,7 +438,7 @@ final class GeminiConsultant
             $errorCode = $this->controlledErrorCode($exception);
 
             $this->circuitBreaker->recordFailure($errorCode);
-            $this->requestRecorder->record(
+            $this->requestRecorder->recordDeferred(
                 'consultant_chat_stream',
                 $model,
                 'FAILED',
@@ -463,7 +479,7 @@ final class GeminiConsultant
 
         $models = array_values(array_unique($models));
 
-        return $models === [] ? ['gemini-3.5-flash-lite'] : $models;
+        return $models === [] ? ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite'] : $models;
     }
 
     /**
@@ -610,6 +626,11 @@ PROMPT;
     private function isTransientStatus(int $status): bool
     {
         return $status === 408 || $status === 429 || $status >= 500;
+    }
+
+    private function shouldTryAnotherModel(int $status): bool
+    {
+        return $status === 404 || $this->isTransientStatus($status);
     }
 
     private function streamTimeoutForAttempt(int $attempt): int

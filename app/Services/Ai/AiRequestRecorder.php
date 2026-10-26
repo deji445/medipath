@@ -8,6 +8,37 @@ use Throwable;
 
 final class AiRequestRecorder
 {
+    public function recordDeferred(
+        string $feature,
+        string $model,
+        string $outcome,
+        int $startedAtNanoseconds,
+        int $attemptCount,
+        ?string $errorCode = null,
+    ): void {
+        if (app()->runningUnitTests()) {
+            $this->record(
+                $feature,
+                $model,
+                $outcome,
+                $startedAtNanoseconds,
+                $attemptCount,
+                $errorCode,
+            );
+
+            return;
+        }
+
+        defer(fn () => $this->record(
+            $feature,
+            $model,
+            $outcome,
+            $startedAtNanoseconds,
+            $attemptCount,
+            $errorCode,
+        ))->always();
+    }
+
     public function record(
         string $feature,
         string $model,

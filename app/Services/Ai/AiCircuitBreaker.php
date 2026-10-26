@@ -101,6 +101,8 @@ final class AiCircuitBreaker
             'GEMINI_HTTP_400',
             'GEMINI_HTTP_401',
             'GEMINI_HTTP_403',
+            'GEMINI_HTTP_404',
+            'GEMINI_MODELS_UNAVAILABLE',
         ], true);
     }
 

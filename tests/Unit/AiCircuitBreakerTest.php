@@ -47,6 +47,19 @@ class AiCircuitBreakerTest extends TestCase
         $this->assertTrue(true);
     }
 
+    public function test_model_specific_failures_do_not_open_the_provider_circuit(): void
+    {
+        $breaker = new AiCircuitBreaker;
+
+        $breaker->recordFailure('GEMINI_HTTP_404');
+        $breaker->recordFailure('GEMINI_MODELS_UNAVAILABLE');
+        $breaker->recordFailure('GEMINI_HTTP_404');
+
+        $breaker->beforeRequest();
+
+        $this->assertTrue(true);
+    }
+
     public function test_a_success_clears_accumulated_failures(): void
     {
         $breaker = new AiCircuitBreaker;
