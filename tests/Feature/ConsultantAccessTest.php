@@ -753,6 +753,37 @@ class ConsultantAccessTest extends TestCase
         ]);
     }
 
+    public function test_the_event_stream_replaces_retired_lite_model_names(): void
+    {
+        config()->set([
+            'medipath.assessment.gemini.api_key' => 'test-key',
+            'medipath.assessment.gemini.consultant_model' => 'gemini-3.5-flash-lite',
+            'medipath.assessment.gemini.consultant_fallback_model' => 'gemini-2.5-flash-lite',
+            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/models/{model}:generate-content',
+        ]);
+        Http::fake([
+            'https://example.test/models/gemini-3.5-flash:generate-content' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [
+                        ['text' => 'When did the discomfort begin?'],
+                    ]],
+                ]],
+            ]),
+        ]);
+
+        $response = $this->post('/consultant/chat/stream', [
+            'message' => 'I have mild discomfort.',
+        ], ['Accept' => 'text/event-stream']);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'When did the discomfort begin?',
+            $response->streamedContent(),
+        );
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://example.test/models/gemini-3.5-flash:generate-content');
+    }
+
     public function test_missing_models_return_a_specific_error_without_opening_the_provider_circuit(): void
     {
         config()->set([

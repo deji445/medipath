@@ -472,14 +472,22 @@ final class GeminiConsultant
     /** @return array<int, string> */
     private function consultantModels(): array
     {
-        $models = array_filter([
-            trim((string) config('medipath.assessment.gemini.consultant_model')),
-            trim((string) config('medipath.assessment.gemini.consultant_fallback_model')),
-        ]);
+        $legacyModelReplacements = [
+            'gemini-3.5-flash-lite' => 'gemini-3.5-flash',
+            'gemini-flash-lite-latest' => 'gemini-3.5-flash',
+            'gemini-2.5-flash-lite' => 'gemini-2.5-flash',
+        ];
+        $models = array_map(
+            fn (string $model): string => $legacyModelReplacements[$model] ?? $model,
+            array_filter([
+                trim((string) config('medipath.assessment.gemini.consultant_model')),
+                trim((string) config('medipath.assessment.gemini.consultant_fallback_model')),
+            ]),
+        );
 
         $models = array_values(array_unique($models));
 
-        return $models === [] ? ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite'] : $models;
+        return $models === [] ? ['gemini-3.5-flash', 'gemini-2.5-flash'] : $models;
     }
 
     /**
