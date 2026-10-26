@@ -713,6 +713,43 @@ class ConsultantAccessTest extends TestCase
         ]);
     }
 
+    public function test_the_event_stream_uses_model_compatible_thinking_options_on_fallback(): void
+    {
+        config()->set([
+            'medipath.assessment.gemini.api_key' => 'test-key',
+            'medipath.assessment.gemini.consultant_model' => 'gemini-3.5-flash',
+            'medipath.assessment.gemini.consultant_fallback_model' => 'gemini-2.5-flash',
+            'medipath.assessment.gemini.consultant_endpoint' => 'https://example.test/models/{model}:generate-content',
+            'medipath.assessment.gemini.retry_delay_ms' => 0,
+        ]);
+        Http::fakeSequence()
+            ->push([], 503)
+            ->push([
+                'candidates' => [[
+                    'content' => ['parts' => [
+                        ['text' => 'Does resting the wrist help?'],
+                    ]],
+                ]],
+            ]);
+
+        $response = $this->post('/consultant/chat/stream', [
+            'message' => 'My wrist hurts mildly after typing.',
+        ], ['Accept' => 'text/event-stream']);
+
+        $response->assertOk();
+        $this->assertStringContainsString('Does resting the wrist help?', $response->streamedContent());
+
+        $requests = Http::recorded();
+        $this->assertCount(2, $requests);
+        $this->assertSame(
+            'minimal',
+            data_get($requests[0][0]->data(), 'generationConfig.thinkingConfig.thinkingLevel'),
+        );
+        $this->assertNull(
+            data_get($requests[1][0]->data(), 'generationConfig.thinkingConfig'),
+        );
+    }
+
     public function test_the_event_stream_uses_the_fallback_model_when_the_primary_model_is_missing(): void
     {
         config()->set([

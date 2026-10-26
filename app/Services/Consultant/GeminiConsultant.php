@@ -78,18 +78,7 @@ final class GeminiConsultant
                                 ],
                                 $messages,
                             ),
-                            'generationConfig' => [
-                                'maxOutputTokens' => max(80, min(
-                                    (int) config('medipath.assessment.gemini.consultant_max_output_tokens', 320),
-                                    500,
-                                )),
-                                'thinkingConfig' => [
-                                    'thinkingLevel' => (string) config(
-                                        'medipath.assessment.gemini.consultant_thinking_level',
-                                        'minimal',
-                                    ),
-                                ],
-                            ],
+                            'generationConfig' => $this->generateContentConfig($model),
                         ]);
                 } catch (ConnectionException $exception) {
                     $lastConnectionException = $exception;
@@ -211,16 +200,7 @@ final class GeminiConsultant
                             'system_instruction' => $this->systemInstruction($locale),
                             'input' => json_encode($messages, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
                             'store' => false,
-                            'generation_config' => [
-                                'max_output_tokens' => max(80, min(
-                                    (int) config('medipath.assessment.gemini.consultant_max_output_tokens', 320),
-                                    500,
-                                )),
-                                'thinking_level' => (string) config(
-                                    'medipath.assessment.gemini.consultant_thinking_level',
-                                    'minimal',
-                                ),
-                            ],
+                            'generation_config' => $this->interactionsGenerationConfig($model),
                         ]);
                 } catch (ConnectionException $exception) {
                     $lastConnectionException = $exception;
@@ -366,16 +346,7 @@ final class GeminiConsultant
                             'input' => json_encode($messages, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
                             'stream' => true,
                             'store' => false,
-                            'generation_config' => [
-                                'max_output_tokens' => max(80, min(
-                                    (int) config('medipath.assessment.gemini.consultant_max_output_tokens', 320),
-                                    500,
-                                )),
-                                'thinking_level' => (string) config(
-                                    'medipath.assessment.gemini.consultant_thinking_level',
-                                    'minimal',
-                                ),
-                            ],
+                            'generation_config' => $this->interactionsGenerationConfig($model),
                         ]);
                 } catch (ConnectionException $exception) {
                     $lastConnectionException = $exception;
@@ -488,6 +459,57 @@ final class GeminiConsultant
         $models = array_values(array_unique($models));
 
         return $models === [] ? ['gemini-3.5-flash', 'gemini-2.5-flash'] : $models;
+    }
+
+    /** @return array<string, mixed> */
+    private function generateContentConfig(string $model): array
+    {
+        $config = [
+            'maxOutputTokens' => $this->maxOutputTokens(),
+        ];
+
+        // Gemini 2.5 does not accept the newer thinkingLevel field. Omitting
+        // thinkingConfig keeps the fallback request compatible with that model.
+        if ($this->supportsThinkingLevel($model)) {
+            $config['thinkingConfig'] = [
+                'thinkingLevel' => (string) config(
+                    'medipath.assessment.gemini.consultant_thinking_level',
+                    'minimal',
+                ),
+            ];
+        }
+
+        return $config;
+    }
+
+    /** @return array<string, int|string> */
+    private function interactionsGenerationConfig(string $model): array
+    {
+        $config = [
+            'max_output_tokens' => $this->maxOutputTokens(),
+        ];
+
+        if ($this->supportsThinkingLevel($model)) {
+            $config['thinking_level'] = (string) config(
+                'medipath.assessment.gemini.consultant_thinking_level',
+                'minimal',
+            );
+        }
+
+        return $config;
+    }
+
+    private function maxOutputTokens(): int
+    {
+        return max(80, min(
+            (int) config('medipath.assessment.gemini.consultant_max_output_tokens', 320),
+            500,
+        ));
+    }
+
+    private function supportsThinkingLevel(string $model): bool
+    {
+        return preg_match('/^gemini-(?:3(?:\\.|-|$)|[4-9])/', $model) === 1;
     }
 
     /**
