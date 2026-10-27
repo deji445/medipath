@@ -35,6 +35,7 @@ import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard, login } from '@/routes';
+import { toast } from 'vue-sonner';
 import {
     computed,
     nextTick,
@@ -176,6 +177,7 @@ let motionContext: gsap.Context | undefined;
 let recognition: SpeechRecognitionInstance | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let receivedSpeech = false;
+let patientLookupToastId: string | number | undefined;
 
 const activeConsultTab = ref<'ai' | 'human'>(
     typeof window !== 'undefined' &&
@@ -183,6 +185,9 @@ const activeConsultTab = ref<'ai' | 'human'>(
         ? 'human'
         : 'ai',
 );
+const continuingFromChat =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('start') === 'intake';
 
 const journey = [
     {
@@ -201,6 +206,20 @@ const journey = [
 
 function prefersReducedMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function beginPatientLookup(): void {
+    patientLookupToastId = toast.loading('Looking up patient profile', {
+        description: 'Checking this number against saved patient records.',
+    });
+}
+
+function finishPatientLookup(): void {
+    if (patientLookupToastId !== undefined) {
+        toast.dismiss(patientLookupToastId);
+    }
+
+    patientLookupToastId = undefined;
 }
 
 function csrfToken(): string {
@@ -980,26 +999,103 @@ onBeforeUnmount(() => {
                             and a hospital-ready summary.
                         </p>
 
+                        <section
+                            id="patient-start"
+                            data-motion="hero-support"
+                            class="mt-9 max-w-2xl scroll-mt-28 rounded-2xl border border-[#b9d1c8] bg-white/92 p-5 shadow-[0_18px_48px_-32px_rgba(23,58,51,0.5)] sm:p-6"
+                            aria-labelledby="patient-start-title"
+                        >
+                            <h2
+                                id="patient-start-title"
+                                class="text-xl font-semibold tracking-[-0.02em] text-[#173a33] sm:text-2xl"
+                            >
+                                Find or create the patient profile
+                            </h2>
+                            <p
+                                class="mt-2 max-w-xl text-sm leading-6 text-[#516c64]"
+                            >
+                                Enter a Ghanaian mobile number. We will use it
+                                only to find the patient’s demo profile.
+                            </p>
+                            <p
+                                v-if="continuingFromChat"
+                                role="status"
+                                class="mt-4 flex items-start gap-2 rounded-lg border border-[#b9d1c8] bg-[#edf6f2] px-3 py-2.5 text-sm font-medium text-[#244a41]"
+                            >
+                                <CheckCircle2
+                                    class="mt-0.5 size-4 shrink-0 text-[#197f6d]"
+                                    aria-hidden="true"
+                                />
+                                Concern saved. Verify the patient to continue.
+                            </p>
+                            <Form
+                                action="/intake/lookup"
+                                method="post"
+                                class="mt-5"
+                                v-slot="{ errors, processing }"
+                                @start="beginPatientLookup"
+                                @finish="finishPatientLookup"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="streamlined"
+                                    value="1"
+                                />
+                                <div
+                                    class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+                                >
+                                    <div class="grid gap-2">
+                                        <Label for="home_phone_number"
+                                            >Mobile number</Label
+                                        >
+                                        <Input
+                                            id="home_phone_number"
+                                            name="phone_number"
+                                            type="tel"
+                                            required
+                                            autocomplete="tel"
+                                            inputmode="tel"
+                                            placeholder="024 123 4567"
+                                            class="h-12 border-[#b9d1c8] bg-white text-base md:text-base"
+                                            :aria-invalid="
+                                                Boolean(errors.phone_number)
+                                            "
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        class="h-12 w-full bg-[#197f6d] px-6 text-base text-white hover:bg-[#116655] sm:w-auto"
+                                        :disabled="processing"
+                                    >
+                                        <Spinner v-if="processing" />
+                                        Continue
+                                        <ArrowRight
+                                            v-if="!processing"
+                                            class="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    </Button>
+                                </div>
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.phone_number"
+                                />
+                                <p
+                                    class="mt-3 text-xs leading-5 text-[#60766f]"
+                                >
+                                    Demo environment. Use dummy patient
+                                    information only.
+                                </p>
+                            </Form>
+                        </section>
+
                         <div
                             data-motion="hero-support"
-                            class="mt-9 flex flex-col items-start gap-5 sm:flex-row sm:items-center"
+                            class="mt-5 flex items-center"
                         >
-                            <Button
-                                as-child
-                                size="lg"
-                                class="h-12 bg-[#197f6d] px-7 text-base text-white shadow-[0_14px_32px_-18px_rgba(17,102,85,0.85)] hover:bg-[#116655]"
-                            >
-                                <Link href="/intake">
-                                    Start intake
-                                    <ArrowRight
-                                        class="size-4"
-                                        aria-hidden="true"
-                                    />
-                                </Link>
-                            </Button>
                             <a
                                 href="#consult"
-                                class="inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-base font-semibold text-[#244a41] underline decoration-[#9abbb0] underline-offset-8 outline-none transition-colors hover:text-[#116655] hover:decoration-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
+                                class="inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-base font-semibold text-[#244a41] underline decoration-[#9abbb0] underline-offset-8 transition-colors outline-none hover:text-[#116655] hover:decoration-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
                             >
                                 Ask the AI consultant
                                 <MessageCircle
@@ -1535,6 +1631,30 @@ onBeforeUnmount(() => {
                                     class="mt-5 rounded-xl bg-[#e7f1ed] p-4 sm:flex sm:items-center sm:justify-between sm:gap-5"
                                     v-slot="{ errors, processing }"
                                 >
+                                    <template
+                                        v-for="(
+                                            message, index
+                                        ) in visibleChatMessages"
+                                        :key="`handoff-${index}`"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            :name="`history[${index}][role]`"
+                                            :value="message.role"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            :name="`history[${index}][content]`"
+                                            :value="message.content"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            :name="`history[${index}][emergency]`"
+                                            :value="
+                                                message.emergency ? '1' : '0'
+                                            "
+                                        />
+                                    </template>
                                     <div class="min-w-0">
                                         <p class="font-semibold text-[#173a33]">
                                             Continue with this concern

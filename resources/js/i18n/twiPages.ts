@@ -171,6 +171,11 @@ export const twiPageTranslations: Record<string, string> = {
         'Yɛde hwehwɛ wo profile no nko ara. Wɔrenkyɛ biribiara a woampene so.',
     'Demo environment. Use dummy patient information only.':
         'Nhwɛso beae. Fa ayarefo ho nsɛm a ɛnyɛ nokware nko ara.',
+    'Looking up patient profile': 'Yɛrehwehwɛ ɔyarefo profile no',
+    'Checking this number against saved patient records.':
+        'Yɛde nɔma yi rehwehwɛ ɔyarefo nsɛm a wɔakora.',
+    'Concern saved. Verify the patient to continue.':
+        'Yɛakora ɔhaw no. Si ɔyarefo no pi na toa so.',
     'Confirm the patient profile': 'Si ɔyarefo profile no pi',
     'Continue your saved intake': 'Toa wo nsɛm a wɔakora no so',
     'Start a new intake': 'Fi ɔyarefo nsɛm foforo ase',

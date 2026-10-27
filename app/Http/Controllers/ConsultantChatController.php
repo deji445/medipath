@@ -111,9 +111,19 @@ class ConsultantChatController extends Controller
         Request $request,
         DeterministicEmergencyScreener $emergencyScreener,
     ): RedirectResponse {
+        $validated = $request->validate([
+            'history' => ['sometimes', 'array', 'max:12'],
+            'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required_with:history', 'string', 'max:2000'],
+            'history.*.emergency' => ['sometimes', 'boolean'],
+        ]);
         $storedMessages = $request->session()->get('consultant_chat', []);
-        $messages = is_array($storedMessages) ? $storedMessages : [];
-        $emergencyLocked = collect($messages)->contains(
+        $sessionMessages = is_array($storedMessages) ? $storedMessages : [];
+        $submittedMessages = is_array($validated['history'] ?? null)
+            ? $validated['history']
+            : [];
+        $messages = $submittedMessages !== [] ? $submittedMessages : $sessionMessages;
+        $emergencyLocked = collect([...$sessionMessages, ...$messages])->contains(
             fn (mixed $message): bool => is_array($message)
                 && ($message['role'] ?? null) === 'assistant'
                 && ($message['emergency'] ?? false) === true,
@@ -144,7 +154,8 @@ class ConsultantChatController extends Controller
             'started_at' => now()->toIso8601String(),
         ]);
 
-        return to_route('intake.start');
+        return to_route('home', ['start' => 'intake'])
+            ->withFragment('patient-start');
     }
 
     public function store(Request $request, GeminiConsultant $consultant): JsonResponse|RedirectResponse

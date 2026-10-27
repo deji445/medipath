@@ -81,13 +81,31 @@ class ConsultantAccessTest extends TestCase
             ],
         ])->post('/consultant/chat/intake');
 
-        $response->assertRedirect('/intake')
+        $response->assertRedirect('/?start=intake#patient-start')
             ->assertSessionHas(
                 'intake.chat_handoff.main_complaint',
                 'My stomach has been aching since this morning. It is a dull pain near the middle.',
             )
             ->assertSessionHas('intake.chat_handoff.message_count', 2)
             ->assertSessionMissing('intake.phone');
+    }
+
+    public function test_visible_chat_history_can_start_intake_when_stream_session_state_is_missing(): void
+    {
+        $response = $this->post('/consultant/chat/intake', [
+            'history' => [
+                ['role' => 'user', 'content' => 'My wrist hurts after typing.', 'emergency' => false],
+                ['role' => 'assistant', 'content' => 'When did it begin?', 'emergency' => false],
+                ['role' => 'user', 'content' => 'It started two days ago.', 'emergency' => false],
+            ],
+        ]);
+
+        $response->assertRedirect('/?start=intake#patient-start')
+            ->assertSessionHas(
+                'intake.chat_handoff.main_complaint',
+                'My wrist hurts after typing. It started two days ago.',
+            )
+            ->assertSessionHas('intake.chat_handoff.message_count', 2);
     }
 
     public function test_an_emergency_chat_cannot_be_carried_into_ordinary_intake(): void
