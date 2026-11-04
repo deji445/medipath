@@ -19,7 +19,9 @@ use App\Services\Assessment\InitialConcernSafetyScreener;
 use App\Services\Routing\ManualLocationGeocoder;
 use App\Services\Verification\PhoneVerificationService;
 use App\Support\PatientAge;
+use App\Support\RecoverableDatabaseTransaction;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,8 @@ use Inertia\Response;
 
 class PatientIntakeController extends Controller
 {
+    public function __construct(private readonly RecoverableDatabaseTransaction $transactions) {}
+
     public function start(Request $request): Response
     {
         if ($request->boolean('restart')) {
@@ -572,85 +576,93 @@ class PatientIntakeController extends Controller
         $ageYears = PatientAge::fromDateOfBirth($identity['date_of_birth'] ?? null)
             ?? (int) $visitData['age_years'];
 
-        $visit = DB::transaction(function () use ($identity, $history, $visitData, $phone, $ageYears): Visit {
-            $patientId = $identity['patient_id'] ?? null;
-            $patient = is_string($patientId) && $patientId !== ''
-                ? Patient::query()->whereKey($patientId)->firstOrFail()
-                : Patient::query()->create([
-                    'normalized_phone' => $phone,
-                    'first_name' => $identity['first_name'],
-                    'last_name' => $identity['last_name'],
-                    'date_of_birth' => $identity['date_of_birth'],
+        try {
+            $visit = $this->transactions->run(function () use ($identity, $history, $visitData, $phone, $ageYears): Visit {
+                $patientId = $identity['patient_id'] ?? null;
+                $patient = is_string($patientId) && $patientId !== ''
+                    ? Patient::query()->whereKey($patientId)->firstOrFail()
+                    : Patient::query()->create([
+                        'normalized_phone' => $phone,
+                        'first_name' => $identity['first_name'],
+                        'last_name' => $identity['last_name'],
+                        'date_of_birth' => $identity['date_of_birth'],
+                        'sex_at_birth' => $identity['sex_at_birth'],
+                    ]);
+
+                $this->syncHistory($patient, $history);
+
+                $manualVitals = array_filter([
+                    'temperature_c' => $visitData['temperature_c'] ?? null,
+                    'heart_rate_bpm' => $visitData['heart_rate_bpm'] ?? null,
+                    'oxygen_saturation_percent' => $visitData['oxygen_saturation_percent'] ?? null,
+                    'captured_at' => now()->toIso8601String(),
+                ], fn (mixed $value, string $key): bool => $key === 'captured_at' || $value !== null, ARRAY_FILTER_USE_BOTH);
+
+                if (count($manualVitals) === 1) {
+                    $manualVitals = [];
+                }
+
+                $visit = $patient->visits()->create([
+                    'preselected_hospital_id' => $visitData['preselected_hospital_id']
+                        ?? session('intake.preselected_hospital_id'),
+                    'status' => VisitStatus::Draft,
+                    'filling_as' => $visitData['filling_as'],
+                    'respondent_name' => $visitData['respondent_name'] ?? null,
+                    'relationship_to_patient' => $visitData['relationship_to_patient'] ?? null,
+                    'age_years' => $ageYears,
                     'sex_at_birth' => $identity['sex_at_birth'],
-                ]);
-
-            $this->syncHistory($patient, $history);
-
-            $manualVitals = array_filter([
-                'temperature_c' => $visitData['temperature_c'] ?? null,
-                'heart_rate_bpm' => $visitData['heart_rate_bpm'] ?? null,
-                'oxygen_saturation_percent' => $visitData['oxygen_saturation_percent'] ?? null,
-                'captured_at' => now()->toIso8601String(),
-            ], fn (mixed $value, string $key): bool => $key === 'captured_at' || $value !== null, ARRAY_FILTER_USE_BOTH);
-
-            if (count($manualVitals) === 1) {
-                $manualVitals = [];
-            }
-
-            $visit = $patient->visits()->create([
-                'preselected_hospital_id' => $visitData['preselected_hospital_id']
-                    ?? session('intake.preselected_hospital_id'),
-                'status' => VisitStatus::Draft,
-                'filling_as' => $visitData['filling_as'],
-                'respondent_name' => $visitData['respondent_name'] ?? null,
-                'relationship_to_patient' => $visitData['relationship_to_patient'] ?? null,
-                'age_years' => $ageYears,
-                'sex_at_birth' => $identity['sex_at_birth'],
-                'pregnancy_status' => $visitData['pregnancy_status'],
-                'manual_location' => $visitData['manual_location'] ?? null,
-                'latitude' => $visitData['latitude'] ?? null,
-                'longitude' => $visitData['longitude'] ?? null,
-                'manual_vitals' => $manualVitals ?: null,
-                'intake_answers' => [
-                    'arrival_type' => session('intake.arrival_type', 'PRE_ARRIVAL'),
-                    'main_complaint' => $visitData['main_complaint'],
-                    'symptom_details' => $visitData['symptom_details'] ?? null,
-                    'symptom_onset' => $visitData['symptom_onset'] ?? null,
-                    'conditions' => $history['conditions'],
-                    'allergies' => $history['allergies'],
-                    'medications' => $history['medications'],
-                    'history_status' => [
-                        'conditions' => $history['conditions_status'] ?? 'DETAILS',
-                        'allergies' => $history['allergies_status'] ?? 'DETAILS',
-                        'medications' => $history['medications_status'] ?? 'DETAILS',
+                    'pregnancy_status' => $visitData['pregnancy_status'],
+                    'manual_location' => $visitData['manual_location'] ?? null,
+                    'latitude' => $visitData['latitude'] ?? null,
+                    'longitude' => $visitData['longitude'] ?? null,
+                    'manual_vitals' => $manualVitals ?: null,
+                    'intake_answers' => [
+                        'arrival_type' => session('intake.arrival_type', 'PRE_ARRIVAL'),
+                        'main_complaint' => $visitData['main_complaint'],
+                        'symptom_details' => $visitData['symptom_details'] ?? null,
+                        'symptom_onset' => $visitData['symptom_onset'] ?? null,
+                        'conditions' => $history['conditions'],
+                        'allergies' => $history['allergies'],
+                        'medications' => $history['medications'],
+                        'history_status' => [
+                            'conditions' => $history['conditions_status'] ?? 'DETAILS',
+                            'allergies' => $history['allergies_status'] ?? 'DETAILS',
+                            'medications' => $history['medications_status'] ?? 'DETAILS',
+                        ],
                     ],
-                ],
-            ]);
-
-            $visit->assessment()->create(['status' => AssessmentStatus::Pending]);
-
-            foreach ([ConsentType::AiDisclaimer, ConsentType::PrivacyNotice] as $consentType) {
-                $visit->consentEvents()->create([
-                    'patient_id' => $patient->getKey(),
-                    'consent_type' => $consentType,
-                    'consent_version' => '1.0',
-                    'granted' => true,
-                    'recorded_at' => now(),
                 ]);
-            }
 
-            if (($visitData['location_permission_granted'] ?? false) === true) {
-                $visit->consentEvents()->create([
-                    'patient_id' => $patient->getKey(),
-                    'consent_type' => ConsentType::LocationAccess,
-                    'consent_version' => '1.0',
-                    'granted' => true,
-                    'recorded_at' => now(),
-                ]);
-            }
+                $visit->assessment()->create(['status' => AssessmentStatus::Pending]);
 
-            return $visit;
-        });
+                foreach ([ConsentType::AiDisclaimer, ConsentType::PrivacyNotice] as $consentType) {
+                    $visit->consentEvents()->create([
+                        'patient_id' => $patient->getKey(),
+                        'consent_type' => $consentType,
+                        'consent_version' => '1.0',
+                        'granted' => true,
+                        'recorded_at' => now(),
+                    ]);
+                }
+
+                if (($visitData['location_permission_granted'] ?? false) === true) {
+                    $visit->consentEvents()->create([
+                        'patient_id' => $patient->getKey(),
+                        'consent_type' => ConsentType::LocationAccess,
+                        'consent_version' => '1.0',
+                        'granted' => true,
+                        'recorded_at' => now(),
+                    ]);
+                }
+
+                return $visit;
+            });
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'intake' => 'We could not save this intake. Your answers are still here. Please try Continue again.',
+            ])->withInput();
+        }
 
         $request->session()->forget('intake');
         $request->session()->flash('completed_visit_reference', $visit->getKey());

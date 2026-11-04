@@ -10,6 +10,7 @@ import {
     UserRound,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import AlertError from '@/components/AlertError.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -267,6 +268,12 @@ onBeforeUnmount(() => recognition?.abort());
                 type="hidden"
                 name="location_permission_granted"
                 :value="locationPermissionGranted ? '1' : '0'"
+            />
+
+            <AlertError
+                v-if="errors.intake"
+                :errors="[errors.intake]"
+                title="Your intake was not saved"
             />
 
             <section aria-labelledby="main-concern-label">
