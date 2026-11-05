@@ -100,6 +100,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // PgBouncer transaction pooling cannot safely retain PDO's native
+            // server-side prepared statements between application queries.
+            // Emulation keeps each statement self-contained on pooled Neon
+            // connections and prevents otherwise successful writes from
+            // leaving the transaction in PostgreSQL's aborted state.
+            'options' => extension_loaded('pdo_pgsql') ? [
+                PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', true),
+            ] : [],
         ],
 
         'sqlsrv' => [
