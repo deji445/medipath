@@ -75,7 +75,7 @@ export const twiPageTranslations: Record<string, string> = {
     "has been called, or while another person is making the call.":
         "ansa, anaa bere a obi foforo refrɛ no.",
     for: "ma",
-    "Find a nearby listed demo facility": "Hwehwɛ nhwɛso ayaresabea a ɛbɛn wo",
+    "Find a nearby listed facility": "Hwehwɛ ayaresabea a wɔakyerɛw din a ɛbɛn wo",
     "Emergency mode treats the situation as high urgency and only considers active, emergency-capable facilities. Your location is used on this device and is not saved or sent.":
         "Ntɛm tebea no bu eyi sɛ asiane kɛse na ɛhwɛ ayaresabea a ɛyɛ adwuma na etumi gye ntɛm tebea nko ara. Wɔde wo beae di dwuma wɔ afiri yi so, na wɔnkora anaa wɔmfa nkɔ baabi.",
     "Facilities are now ordered by straight-line distance.":
@@ -86,18 +86,17 @@ export const twiPageTranslations: Record<string, string> = {
     "Start guided intake": "Fi ɔyarefo nsɛm a wɔkyerɛ kwan no ase",
     "Emergency-capable facilities": "Ayaresabea a egye ntɛm tebea",
     found: "wɔahu",
-    "Nearest listed emergency-capable demo facility":
-        "Nhwɛso ayaresabea a egye ntɛm tebea na ɛbɛn wo paa",
+    "Nearest listed emergency-capable facility": "Ayaresabea a egye ntɛm tebea na ɛbɛn wo paa",
     Approximately: "Bɛyɛ",
     "km away": "kilomita fi ha",
     "Distance unavailable for this facility": "Yennim ɔkwan a ɛkɔ ayaresabea yi",
     "Get directions": "Nya kwan ho akwankyerɛ",
-    "No demo emergency facility is currently listed":
-        "Nhwɛso ayaresabea a egye ntɛm tebea biara nni list no mu seesei",
+    "No emergency-capable facility is currently listed":
+        "Ayaresabea a egye ntɛm tebea biara nni list no mu seesei",
     "instead of waiting for MediPath to find a destination.":
         "sen sɛ wobɛtwɛn MediPath ma ahwehwɛ baabi ama wo.",
-    "Prototype data only. This list does not show live ambulance, bed, or clinician availability. In an emergency, follow the instructions from":
-        "Nhwɛso nsɛm nko ara. List yi nkyerɛ ambulance, mpa, anaa oduruyɛfo a ɔwɔ hɔ seesei. Sɛ ɛyɛ ntɛm tebea a, di akwankyerɛ a efi ha no akyi:",
+    "Directory information only. This list does not show live ambulance, bed, or clinician availability, and it does not indicate a MediPath partnership. In an emergency, follow the instructions from":
+        "Ayaresabea din ho nsɛm nko ara. List yi nkyerɛ ambulance, mpa, anaa oduruyɛfo a ɔwɔ hɔ seesei, na ɛnkyerɛ sɛ MediPath ne ayaresabea no yɛ adwuma bom. Sɛ ɛyɛ ntɛm tebea a, di akwankyerɛ a efi ha no akyi:",
 
     "Hospital controls": "Ayaresabea sohwɛ",
     "Routing and intake": "Ayaresabea paw ne ɔyarefo nsɛm",
