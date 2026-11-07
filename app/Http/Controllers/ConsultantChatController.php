@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Assessment\DeterministicEmergencyScreener;
+use App\Services\Consultant\ConsultantHandoffBuilder;
 use App\Services\Consultant\GeminiConsultant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -110,6 +111,7 @@ class ConsultantChatController extends Controller
     public function startIntake(
         Request $request,
         DeterministicEmergencyScreener $emergencyScreener,
+        ConsultantHandoffBuilder $handoffBuilder,
     ): RedirectResponse {
         $validated = $request->validate([
             'history' => ['sometimes', 'array', 'max:12'],
@@ -128,14 +130,8 @@ class ConsultantChatController extends Controller
                 && ($message['role'] ?? null) === 'assistant'
                 && ($message['emergency'] ?? false) === true,
         );
-        $patientMessages = collect($messages)
-            ->filter(fn (mixed $message): bool => is_array($message)
-                && ($message['role'] ?? null) === 'user'
-                && is_string($message['content'] ?? null))
-            ->map(fn (array $message): string => trim($message['content']))
-            ->filter()
-            ->values();
-        $mainComplaint = mb_substr($patientMessages->implode(' '), 0, 500);
+        $handoff = $handoffBuilder->build($messages);
+        $mainComplaint = $handoff['main_complaint'];
 
         if ($emergencyLocked || $emergencyScreener->screenText($mainComplaint) !== []) {
             $request->session()->forget('intake.chat_handoff');
@@ -148,14 +144,9 @@ class ConsultantChatController extends Controller
                 ->withErrors(['chat_handoff' => 'Describe the concern in the chat before starting intake.']);
         }
 
-        $request->session()->put('intake.chat_handoff', [
-            'main_complaint' => $mainComplaint,
-            'message_count' => $patientMessages->count(),
-            'started_at' => now()->toIso8601String(),
-        ]);
+        $request->session()->put('intake.chat_handoff', $handoff);
 
-        return to_route('home', ['start' => 'intake'])
-            ->withFragment('patient-start');
+        return to_route('intake.start', ['continuing' => 'consultation']);
     }
 
     public function store(Request $request, GeminiConsultant $consultant): JsonResponse|RedirectResponse

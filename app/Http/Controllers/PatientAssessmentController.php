@@ -186,6 +186,7 @@ class PatientAssessmentController extends Controller
                 'mainConcern' => $visit->intake_answers['main_complaint'] ?? null,
                 'conversationMode' => true,
                 'question' => $pendingQuestion,
+                'consultationFacts' => $this->consultationFacts($visit),
                 'transcript' => $this->conversationTranscript($visit, $answers),
                 'progress' => [
                     'current' => min(count($answers) + 1, $maxQuestions),
@@ -499,6 +500,30 @@ class PatientAssessmentController extends Controller
             : [];
     }
 
+    /** @return array<int, array{topic: string, label: string, answer: string}> */
+    private function consultationFacts(Visit $visit): array
+    {
+        $handoff = $visit->intake_answers['consultant_handoff'] ?? null;
+        $facts = is_array($handoff) ? ($handoff['facts'] ?? null) : null;
+
+        if (! is_array($facts)) {
+            return [];
+        }
+
+        return collect($facts)
+            ->filter(fn (mixed $fact): bool => is_array($fact)
+                && is_string($fact['topic'] ?? null)
+                && is_string($fact['label'] ?? null)
+                && is_string($fact['answer'] ?? null))
+            ->map(fn (array $fact): array => [
+                'topic' => $fact['topic'],
+                'label' => $fact['label'],
+                'answer' => $fact['answer'],
+            ])
+            ->values()
+            ->all();
+    }
+
     /** @return array{key: string, question: string, help: string, options: array<int, never>} */
     private function pendingConversationQuestion(Visit $visit, int $answerCount): array
     {
@@ -515,10 +540,49 @@ class PatientAssessmentController extends Controller
             ];
         }
 
+        $handoff = $visit->intake_answers['consultant_handoff'] ?? null;
+        $answeredTopics = is_array($handoff)
+            && is_array($handoff['answered_topics'] ?? null)
+                ? array_values(array_filter($handoff['answered_topics'], 'is_string'))
+                : [];
+        $candidates = [
+            'onset_duration' => [
+                'question' => 'When did this concern start, and how has it changed since then?',
+                'help' => 'A short answer is enough. Include whether it is improving, stable, or getting worse.',
+            ],
+            'location' => [
+                'question' => 'Where in the body is the problem, and does it spread anywhere else?',
+                'help' => 'Describe the most specific location you can.',
+            ],
+            'severity' => [
+                'question' => 'How severe is it now, and is it stopping normal activity?',
+                'help' => 'You can describe it as mild, moderate, or severe and mention what you cannot do normally.',
+            ],
+            'associated_symptoms' => [
+                'question' => 'What other symptoms are happening with the main concern?',
+                'help' => 'Mention anything new or unusual, even if it seems unrelated.',
+            ],
+            'effect_on_activity' => [
+                'question' => 'How is this affecting walking, working, sleeping, eating, or other normal activity?',
+                'help' => 'Describe only the activities that are affected.',
+            ],
+        ];
+
+        foreach ($candidates as $topic => $candidate) {
+            if (! in_array($topic, $answeredTopics, true)) {
+                return [
+                    'key' => 'ai_'.($answerCount + 1),
+                    'question' => $candidate['question'],
+                    'help' => $candidate['help'].' MediPath is skipping details already captured in your consultation.',
+                    'options' => [],
+                ];
+            }
+        }
+
         return [
             'key' => 'ai_'.($answerCount + 1),
-            'question' => 'When did this concern start, and how has it changed since then?',
-            'help' => 'A short answer is enough. MediPath will ask only what is needed next.',
+            'question' => 'Is there anything important about this concern that has not already been captured?',
+            'help' => 'If nothing is missing, say “No”. MediPath will use the consultation details already saved.',
             'options' => [],
         ];
     }

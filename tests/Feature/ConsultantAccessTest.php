@@ -81,12 +81,13 @@ class ConsultantAccessTest extends TestCase
             ],
         ])->post('/consultant/chat/intake');
 
-        $response->assertRedirect('/?start=intake#patient-start')
+        $response->assertRedirect('/intake?continuing=consultation')
             ->assertSessionHas(
                 'intake.chat_handoff.main_complaint',
                 'My stomach has been aching since this morning. It is a dull pain near the middle.',
             )
             ->assertSessionHas('intake.chat_handoff.message_count', 2)
+            ->assertSessionHas('intake.chat_handoff.answered_topics', fn (array $topics): bool => in_array('character', $topics, true))
             ->assertSessionMissing('intake.phone');
     }
 
@@ -100,12 +101,13 @@ class ConsultantAccessTest extends TestCase
             ],
         ]);
 
-        $response->assertRedirect('/?start=intake#patient-start')
+        $response->assertRedirect('/intake?continuing=consultation')
             ->assertSessionHas(
                 'intake.chat_handoff.main_complaint',
                 'My wrist hurts after typing. It started two days ago.',
             )
-            ->assertSessionHas('intake.chat_handoff.message_count', 2);
+            ->assertSessionHas('intake.chat_handoff.message_count', 2)
+            ->assertSessionHas('intake.chat_handoff.answered_topics', fn (array $topics): bool => in_array('onset_duration', $topics, true));
     }
 
     public function test_an_emergency_chat_cannot_be_carried_into_ordinary_intake(): void

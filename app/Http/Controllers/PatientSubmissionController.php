@@ -11,6 +11,7 @@ use App\Http\Requests\Submission\StoreHospitalSubmissionRequest;
 use App\Models\ConsentEvent;
 use App\Models\HospitalSubmission;
 use App\Models\Visit;
+use App\Services\Routing\AmbulanceDemoPlanner;
 use App\Services\Routing\HospitalRoutingService;
 use App\Services\Submission\HospitalSubmissionSnapshot;
 use Illuminate\Http\RedirectResponse;
@@ -162,6 +163,34 @@ class PatientSubmissionController extends Controller
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
+            ],
+        ]);
+    }
+
+    public function ambulanceDemo(
+        Request $request,
+        AmbulanceDemoPlanner $planner,
+    ): Response|RedirectResponse {
+        $visit = $this->activeVisit($request);
+        $submission = $visit?->hospitalSubmission;
+
+        if (! $visit || ! $submission) {
+            return to_route('submission.review');
+        }
+
+        $hospital = $submission->hospital;
+
+        return Inertia::render('submission/AmbulanceDemo', [
+            'submissionReference' => $submission->getKey(),
+            'hospital' => [
+                'name' => $hospital->brand_name ?: $hospital->name,
+                'fullName' => $hospital->name,
+                'address' => $hospital->address,
+            ],
+            'plan' => $planner->plan($visit, $hospital),
+            'emergencyContact' => [
+                'label' => config('medipath.emergency.contact_label'),
+                'phone' => config('medipath.emergency.phone'),
             ],
         ]);
     }

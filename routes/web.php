@@ -84,6 +84,8 @@ Route::prefix('intake/submission')->name('submission.')->group(function () {
     Route::get('/', [PatientSubmissionController::class, 'review'])->name('review');
     Route::post('/', [PatientSubmissionController::class, 'store'])->name('store');
     Route::get('complete', [PatientSubmissionController::class, 'complete'])->name('complete');
+    Route::get('ambulance-demo', [PatientSubmissionController::class, 'ambulanceDemo'])
+        ->name('ambulance-demo');
 });
 
 Route::middleware(['auth', 'verified', 'staff.tenant'])->group(function () {

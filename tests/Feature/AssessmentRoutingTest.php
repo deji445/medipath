@@ -330,6 +330,31 @@ class AssessmentRoutingTest extends TestCase
         ]);
     }
 
+    public function test_gemini_mode_skips_topics_already_answered_in_the_consultation(): void
+    {
+        config()->set('medipath.assessment.driver', 'gemini');
+        $visit = $this->createVisit();
+        $intakeAnswers = $visit->intake_answers;
+        $intakeAnswers['consultant_handoff'] = [
+            'answered_topics' => ['onset_duration'],
+            'facts' => [[
+                'topic' => 'onset_duration',
+                'label' => 'When it started',
+                'answer' => 'It started one week ago.',
+            ]],
+        ];
+        $visit->update(['intake_answers' => $intakeAnswers]);
+
+        $this->withSession(['active_visit_reference' => $visit->getKey()])
+            ->get('/intake/assessment')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('assessment/Question')
+                ->where('question.question', 'Where in the body is the problem, and does it spread anywhere else?')
+                ->where('consultationFacts.0.topic', 'onset_duration')
+                ->where('consultationFacts.0.answer', 'It started one week ago.'));
+    }
+
     public function test_gemini_conversation_uses_safe_guidance_when_the_provider_is_unavailable(): void
     {
         config()->set('medipath.assessment.driver', 'gemini');

@@ -47,6 +47,7 @@ final class AssessmentInputBuilder
                 ])->values()->all(),
             'manual_vitals' => $visit->manual_vitals,
             'wearable_vitals' => $visit->wearable_vitals,
+            'consultant_context' => $this->consultantContext($visit),
             'conversation' => $conversation,
         ];
     }
@@ -68,5 +69,34 @@ final class AssessmentInputBuilder
         }
 
         return $input;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function consultantContext(Visit $visit): ?array
+    {
+        $handoff = $visit->intake_answers['consultant_handoff'] ?? null;
+
+        if (! is_array($handoff)) {
+            return null;
+        }
+
+        return [
+            'answered_topics' => array_values(array_filter(
+                is_array($handoff['answered_topics'] ?? null) ? $handoff['answered_topics'] : [],
+                'is_string',
+            )),
+            'facts' => array_values(array_filter(
+                is_array($handoff['facts'] ?? null) ? $handoff['facts'] : [],
+                fn (mixed $fact): bool => is_array($fact)
+                    && is_string($fact['topic'] ?? null)
+                    && is_string($fact['answer'] ?? null),
+            )),
+            'transcript' => array_values(array_filter(
+                is_array($handoff['transcript'] ?? null) ? $handoff['transcript'] : [],
+                fn (mixed $message): bool => is_array($message)
+                    && in_array($message['role'] ?? null, ['user', 'assistant'], true)
+                    && is_string($message['content'] ?? null),
+            )),
+        ];
     }
 }

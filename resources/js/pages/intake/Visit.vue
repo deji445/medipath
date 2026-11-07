@@ -1,21 +1,22 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Form, Head, Link } from "@inertiajs/vue3";
 import {
     Activity,
     CheckCircle2,
     LocateFixed,
     MapPinned,
+    MessageCircle,
     Mic,
     Square,
     UserRound,
-} from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import AlertError from '@/components/AlertError.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+} from "@lucide/vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import AlertError from "@/components/AlertError.vue";
+import InputError from "@/components/InputError.vue";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 
 type VisitDraft = {
     age_years?: string | number;
@@ -62,33 +63,38 @@ const props = defineProps<{
     patientAge?: number | null;
     sexAtBirth: string;
     formAction?: string;
-    formMethod?: 'post' | 'patch';
+    formMethod?: "post" | "patch";
     backHref?: string;
+    consultationHandoff?: {
+        mainComplaint: string;
+        messageCount: number;
+        facts: Array<{ topic: string; label: string; answer: string }>;
+    } | null;
 }>();
 
-const fillingAs = ref(String(props.visit?.filling_as ?? 'SELF'));
-const mainComplaint = ref(String(props.visit?.main_complaint ?? ''));
+const fillingAs = ref(String(props.visit?.filling_as ?? "SELF"));
+const mainComplaint = ref(String(props.visit?.main_complaint ?? ""));
 const speechSupported = ref(false);
 const isListening = ref(false);
-const speechStatus = ref('');
-const draftStatus = ref('');
-const latitude = ref<string>(String(props.visit?.latitude ?? ''));
-const longitude = ref<string>(String(props.visit?.longitude ?? ''));
+const speechStatus = ref("");
+const draftStatus = ref("");
+const latitude = ref<string>(String(props.visit?.latitude ?? ""));
+const longitude = ref<string>(String(props.visit?.longitude ?? ""));
 const locationPermissionGranted = ref(
     props.visit?.latitude != null && props.visit?.longitude != null,
 );
 const locating = ref(false);
 const locationStatus = ref(
     locationPermissionGranted.value
-        ? 'Precise location added for distance-based hospital matching.'
-        : '',
+        ? "Precise location added for distance-based hospital matching."
+        : "",
 );
 let recognition: SpeechRecognitionInstance | null = null;
-const concernDraftKey = 'medipath:intake:current-concern';
+const concernDraftKey = "medipath:intake:current-concern";
 
 const concernLength = computed(() => mainComplaint.value.length);
 const fieldClass =
-    'h-10 w-full appearance-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-teal-700 focus-visible:ring-[3px] focus-visible:ring-teal-700/25';
+    "h-10 w-full appearance-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-teal-700 focus-visible:ring-[3px] focus-visible:ring-teal-700/25";
 
 const toggleDictation = () => {
     if (!recognition) return;
@@ -98,27 +104,26 @@ const toggleDictation = () => {
         return;
     }
 
-    speechStatus.value = 'Listening';
+    speechStatus.value = "Listening";
     isListening.value = true;
 
     try {
         recognition.start();
     } catch {
         isListening.value = false;
-        speechStatus.value =
-            'Speech input could not start. You can keep typing.';
+        speechStatus.value = "Speech input could not start. You can keep typing.";
     }
 };
 
 const useCurrentLocation = () => {
     if (!navigator.geolocation) {
         locationStatus.value =
-            'This browser cannot share location. Enter your area or landmark instead.';
+            "This browser cannot share location. Enter your area or landmark instead.";
         return;
     }
 
     locating.value = true;
-    locationStatus.value = 'Finding your current location…';
+    locationStatus.value = "Finding your current location…";
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -127,12 +132,11 @@ const useCurrentLocation = () => {
             locationPermissionGranted.value = true;
             locating.value = false;
             locationStatus.value =
-                'Location added. Hospitals will be ranked by distance where coordinates are available.';
+                "Location added. Hospitals will be ranked by distance where coordinates are available.";
         },
         () => {
             locating.value = false;
-            locationStatus.value =
-                'Location was not shared. Enter your area or landmark instead.';
+            locationStatus.value = "Location was not shared. Enter your area or landmark instead.";
         },
         {
             enableHighAccuracy: false,
@@ -156,13 +160,13 @@ watch(mainComplaint, (value) => {
     try {
         if (value.trim()) {
             sessionStorage.setItem(concernDraftKey, value);
-            draftStatus.value = 'Draft saved in this tab';
+            draftStatus.value = "Draft saved in this tab";
         } else {
             clearConcernDraft();
-            draftStatus.value = '';
+            draftStatus.value = "";
         }
     } catch {
-        draftStatus.value = '';
+        draftStatus.value = "";
     }
 });
 
@@ -173,10 +177,10 @@ onMounted(() => {
 
             if (savedConcern) {
                 mainComplaint.value = savedConcern.slice(0, 500);
-                draftStatus.value = 'Unsaved concern restored';
+                draftStatus.value = "Unsaved concern restored";
             }
         } catch {
-            draftStatus.value = '';
+            draftStatus.value = "";
         }
     }
 
@@ -184,8 +188,7 @@ onMounted(() => {
         SpeechRecognition?: SpeechRecognitionConstructor;
         webkitSpeechRecognition?: SpeechRecognitionConstructor;
     };
-    const Recognition =
-        speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 
     if (!Recognition) return;
 
@@ -193,38 +196,31 @@ onMounted(() => {
     recognition = new Recognition();
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.lang = navigator.language || 'en-GB';
+    recognition.lang = navigator.language || "en-GB";
     recognition.onresult = (event) => {
         const spokenParts: string[] = [];
 
-        for (
-            let index = event.resultIndex;
-            index < event.results.length;
-            index++
-        ) {
+        for (let index = event.resultIndex; index < event.results.length; index++) {
             if (event.results[index].isFinal) {
                 spokenParts.push(event.results[index][0].transcript.trim());
             }
         }
 
         if (spokenParts.length > 0) {
-            mainComplaint.value = [
-                mainComplaint.value.trim(),
-                spokenParts.join(' '),
-            ]
+            mainComplaint.value = [mainComplaint.value.trim(), spokenParts.join(" ")]
                 .filter(Boolean)
-                .join(' ')
+                .join(" ")
                 .slice(0, 500);
         }
     };
     recognition.onerror = () => {
         isListening.value = false;
-        speechStatus.value = 'Speech input stopped. You can continue typing.';
+        speechStatus.value = "Speech input stopped. You can continue typing.";
     };
     recognition.onend = () => {
         isListening.value = false;
-        if (speechStatus.value === 'Listening') {
-            speechStatus.value = 'Speech added to your concern.';
+        if (speechStatus.value === "Listening") {
+            speechStatus.value = "Speech added to your concern.";
         }
     };
 });
@@ -234,23 +230,17 @@ onBeforeUnmount(() => recognition?.abort());
 
 <template>
     <Head title="Current concern" />
-    <section
-        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-    >
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-teal-100 bg-teal-50/70 px-6 py-6 sm:px-8">
-            <p
-                class="text-xs font-semibold tracking-[0.16em] text-teal-800 uppercase"
-            >
+            <p class="text-xs font-semibold tracking-[0.16em] text-teal-800 uppercase">
                 Current concern
             </p>
-            <h1
-                class="mt-2 text-3xl leading-tight font-semibold tracking-tight text-slate-950"
-            >
+            <h1 class="mt-2 text-3xl leading-tight font-semibold tracking-tight text-slate-950">
                 What is happening now?
             </h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Describe the main problem in your own words. MediPath will check
-                it for urgent warning signs before the short assessment.
+                Describe the main problem in your own words. MediPath will check it for urgent
+                warning signs before the short assessment.
             </p>
         </div>
 
@@ -276,6 +266,24 @@ onBeforeUnmount(() => recognition?.abort());
                 title="Your intake was not saved"
             />
 
+            <div
+                v-if="consultationHandoff"
+                class="flex gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-950"
+            >
+                <MessageCircle class="mt-0.5 size-5 shrink-0 text-teal-800" aria-hidden="true" />
+                <div>
+                    <p class="font-semibold">Conversation carried forward</p>
+                    <p class="mt-1 leading-6 text-teal-900">
+                        {{ consultationHandoff.messageCount }} patient
+                        {{
+                            consultationHandoff.messageCount === 1 ? "message was" : "messages were"
+                        }}
+                        captured. Review the concern below; the assessment will skip topics you
+                        already answered.
+                    </p>
+                </div>
+            </div>
+
             <section aria-labelledby="main-concern-label">
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <div>
@@ -286,8 +294,7 @@ onBeforeUnmount(() => recognition?.abort());
                             >Main concern</Label
                         >
                         <p class="mt-1 text-sm text-slate-600">
-                            Include what started, how it feels, and what
-                            changed.
+                            Include what started, how it feels, and what changed.
                         </p>
                     </div>
                     <Button
@@ -297,19 +304,13 @@ onBeforeUnmount(() => recognition?.abort());
                         class="border-teal-200 text-teal-800 hover:bg-teal-50"
                         :aria-pressed="isListening"
                         :aria-label="
-                            isListening
-                                ? 'Stop speech input'
-                                : 'Describe the concern using speech'
+                            isListening ? 'Stop speech input' : 'Describe the concern using speech'
                         "
                         @click="toggleDictation"
                     >
-                        <Square
-                            v-if="isListening"
-                            class="size-4 fill-current"
-                            aria-hidden="true"
-                        />
+                        <Square v-if="isListening" class="size-4 fill-current" aria-hidden="true" />
                         <Mic v-else class="size-4" aria-hidden="true" />
-                        {{ isListening ? 'Stop' : 'Speak' }}
+                        {{ isListening ? "Stop" : "Speak" }}
                     </Button>
                 </div>
 
@@ -329,27 +330,18 @@ onBeforeUnmount(() => recognition?.abort());
                         {{
                             speechStatus ||
                             draftStatus ||
-                            'Type or use speech input if your browser supports it.'
+                            "Type or use speech input if your browser supports it."
                         }}
                     </p>
-                    <span class="shrink-0 tabular-nums"
-                        >{{ concernLength }}/500</span
-                    >
+                    <span class="shrink-0 tabular-nums">{{ concernLength }}/500</span>
                 </div>
                 <InputError class="mt-2" :message="errors.main_complaint" />
             </section>
 
-            <div
-                class="grid gap-6 border-t border-slate-200 pt-8 lg:grid-cols-2"
-            >
+            <div class="grid gap-6 border-t border-slate-200 pt-8 lg:grid-cols-2">
                 <fieldset>
-                    <legend
-                        class="flex items-center gap-2 text-base font-semibold text-slate-950"
-                    >
-                        <UserRound
-                            class="size-5 text-teal-700"
-                            aria-hidden="true"
-                        />
+                    <legend class="flex items-center gap-2 text-base font-semibold text-slate-950">
+                        <UserRound class="size-5 text-teal-700" aria-hidden="true" />
                         Who is completing this?
                     </legend>
                     <select
@@ -377,20 +369,14 @@ onBeforeUnmount(() => recognition?.abort());
                             <InputError :message="errors.respondent_name" />
                         </div>
                         <div class="grid gap-2">
-                            <Label for="relationship_to_patient"
-                                >Relationship to patient</Label
-                            >
+                            <Label for="relationship_to_patient">Relationship to patient</Label>
                             <Input
                                 id="relationship_to_patient"
                                 name="relationship_to_patient"
                                 required
-                                :default-value="
-                                    visit?.relationship_to_patient ?? ''
-                                "
+                                :default-value="visit?.relationship_to_patient ?? ''"
                             />
-                            <InputError
-                                :message="errors.relationship_to_patient"
-                            />
+                            <InputError :message="errors.relationship_to_patient" />
                         </div>
                     </div>
                 </fieldset>
@@ -432,9 +418,7 @@ onBeforeUnmount(() => recognition?.abort());
                 </div>
             </div>
 
-            <details
-                class="group rounded-xl border border-slate-200 bg-slate-50/70 open:bg-white"
-            >
+            <details class="group rounded-xl border border-slate-200 bg-slate-50/70 open:bg-white">
                 <summary
                     class="flex cursor-pointer list-none items-center gap-3 px-4 py-4 font-medium text-slate-900 marker:content-none"
                 >
@@ -449,12 +433,8 @@ onBeforeUnmount(() => recognition?.abort());
                             >Optional, but useful for hospital routing</span
                         >
                     </span>
-                    <span
-                        class="ml-auto text-sm text-teal-800 group-open:hidden"
-                        >Add</span
-                    >
-                    <span
-                        class="ml-auto hidden text-sm text-teal-800 group-open:inline"
+                    <span class="ml-auto text-sm text-teal-800 group-open:hidden">Add</span>
+                    <span class="ml-auto hidden text-sm text-teal-800 group-open:inline"
                         >Close</span
                     >
                 </summary>
@@ -477,17 +457,14 @@ onBeforeUnmount(() => recognition?.abort());
                                 <p class="font-medium text-slate-950">
                                     {{
                                         locationPermissionGranted
-                                            ? 'Current location added'
-                                            : 'Find hospitals near me'
+                                            ? "Current location added"
+                                            : "Find hospitals near me"
                                     }}
                                 </p>
-                                <p
-                                    class="mt-1 text-xs leading-5 text-slate-600"
-                                    aria-live="polite"
-                                >
+                                <p class="mt-1 text-xs leading-5 text-slate-600" aria-live="polite">
                                     {{
                                         locationStatus ||
-                                        'Your browser will ask before sharing your location.'
+                                        "Your browser will ask before sharing your location."
                                     }}
                                 </p>
                             </div>
@@ -502,17 +479,15 @@ onBeforeUnmount(() => recognition?.abort());
                             <Spinner v-if="locating" />
                             {{
                                 locating
-                                    ? 'Locating'
+                                    ? "Locating"
                                     : locationPermissionGranted
-                                      ? 'Update'
-                                      : 'Use my location'
+                                      ? "Update"
+                                      : "Use my location"
                             }}
                         </Button>
                     </div>
                     <div class="grid gap-2">
-                        <Label for="manual_location"
-                            >Current town, area, or landmark</Label
-                        >
+                        <Label for="manual_location">Current town, area, or landmark</Label>
                         <Input
                             id="manual_location"
                             name="manual_location"
@@ -523,26 +498,18 @@ onBeforeUnmount(() => recognition?.abort());
                         <InputError :message="errors.latitude" />
                         <InputError :message="errors.longitude" />
                         <p class="text-xs leading-5 text-slate-500">
-                            If GPS is unavailable, MediPath will try to match
-                            the entered area in Ghana. Location lookup uses
-                            OpenStreetMap data.
+                            If GPS is unavailable, MediPath will try to match the entered area in
+                            Ghana. Location lookup uses OpenStreetMap data.
                         </p>
                     </div>
                     <fieldset class="mt-5 border-t border-slate-200 pt-5">
-                        <legend
-                            class="flex items-center gap-2 pr-2 font-medium text-slate-900"
-                        >
-                            <Activity
-                                class="size-4 text-teal-700"
-                                aria-hidden="true"
-                            />
+                        <legend class="flex items-center gap-2 pr-2 font-medium text-slate-900">
+                            <Activity class="size-4 text-teal-700" aria-hidden="true" />
                             Vitals, if known
                         </legend>
                         <div class="mt-3 grid gap-5 sm:grid-cols-3">
                             <div class="grid gap-2">
-                                <Label for="temperature_c"
-                                    >Temperature °C</Label
-                                >
+                                <Label for="temperature_c">Temperature °C</Label>
                                 <Input
                                     id="temperature_c"
                                     name="temperature_c"
@@ -567,22 +534,16 @@ onBeforeUnmount(() => recognition?.abort());
                                 <InputError :message="errors.heart_rate_bpm" />
                             </div>
                             <div class="grid gap-2">
-                                <Label for="oxygen_saturation_percent"
-                                    >Oxygen %</Label
-                                >
+                                <Label for="oxygen_saturation_percent">Oxygen %</Label>
                                 <Input
                                     id="oxygen_saturation_percent"
                                     name="oxygen_saturation_percent"
                                     type="number"
                                     min="50"
                                     max="100"
-                                    :default-value="
-                                        visit?.oxygen_saturation_percent ?? ''
-                                    "
+                                    :default-value="visit?.oxygen_saturation_percent ?? ''"
                                 />
-                                <InputError
-                                    :message="errors.oxygen_saturation_percent"
-                                />
+                                <InputError :message="errors.oxygen_saturation_percent" />
                             </div>
                         </div>
                     </fieldset>
@@ -592,20 +553,12 @@ onBeforeUnmount(() => recognition?.abort());
             <div
                 class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"
             >
-                <input
-                    type="hidden"
-                    name="intake_consent_acknowledged"
-                    value="1"
-                />
+                <input type="hidden" name="intake_consent_acknowledged" value="1" />
                 <p>
-                    By continuing, you understand this is guidance, not a
-                    diagnosis, and agree to the use of these health details for
-                    this intake.
+                    By continuing, you understand this is guidance, not a diagnosis, and agree to
+                    the use of these health details for this intake.
                 </p>
-                <InputError
-                    class="mt-2"
-                    :message="errors.intake_consent_acknowledged"
-                />
+                <InputError class="mt-2" :message="errors.intake_consent_acknowledged" />
             </div>
 
             <div

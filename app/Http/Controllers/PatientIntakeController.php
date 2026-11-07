@@ -40,6 +40,14 @@ class PatientIntakeController extends Controller
             $request->session()->forget(['active_visit_reference', 'assessment_red_flags']);
         }
 
+        if ($request->boolean('change_phone')) {
+            $request->session()->forget([
+                'intake.pending_phone_verification',
+                'intake.demo_verification_code',
+                'intake.streamlined',
+            ]);
+        }
+
         $patientId = $request->session()->get('intake.patient_id');
         $patient = is_string($patientId)
             ? Patient::query()->with(['conditions', 'allergies', 'medications'])->find($patientId)
@@ -51,6 +59,8 @@ class PatientIntakeController extends Controller
                 ->with(['patient', 'assessment', 'preselectedHospital'])
                 ->find($activeReference)
             : null;
+        $chatHandoff = $request->session()->get('intake.chat_handoff');
+        $phoneChallenge = $request->session()->get('intake.pending_phone_verification');
 
         return Inertia::render('intake/Start', [
             'phoneNumber' => $request->session()->get('intake.phone'),
@@ -76,6 +86,14 @@ class PatientIntakeController extends Controller
                     120,
                 ),
             ] : null,
+            'consultationHandoff' => $this->consultationHandoffForPage($chatHandoff),
+            'phoneVerification' => is_array($phoneChallenge)
+                && is_string($phoneChallenge['phone'] ?? null) ? [
+                    'phoneNumber' => $this->maskPhone($phoneChallenge['phone']),
+                    'expiresAt' => $phoneChallenge['expires_at'] ?? null,
+                    'demoCode' => $request->session()->get('intake.demo_verification_code'),
+                    'status' => $request->session()->get('status'),
+                ] : null,
         ]);
     }
 
@@ -110,7 +128,9 @@ class PatientIntakeController extends Controller
             $request->session()->put('intake.chat_handoff', $chatHandoff);
         }
 
-        return to_route('intake.phone.verify');
+        return is_array($chatHandoff)
+            ? to_route('intake.start', ['continuing' => 'consultation'])
+            : to_route('intake.phone.verify');
     }
 
     public function verifyPhone(Request $request): Response|RedirectResponse
@@ -213,7 +233,11 @@ class PatientIntakeController extends Controller
             $request->session()->put('intake.demo_verification_code', $issued['demo_code']);
         }
 
-        return to_route('intake.phone.verify')->with('status', 'A new verification code is ready.');
+        $route = is_array($request->session()->get('intake.chat_handoff'))
+            ? to_route('intake.start', ['continuing' => 'consultation'])
+            : to_route('intake.phone.verify');
+
+        return $route->with('status', 'A new verification code is ready.');
     }
 
     public function storeProfile(StoreProfileRequest $request): RedirectResponse
@@ -408,6 +432,7 @@ class PatientIntakeController extends Controller
 
         return Inertia::render('intake/Visit', [
             'visit' => $visit,
+            'consultationHandoff' => $this->consultationHandoffForPage($chatHandoff),
             'sexAtBirth' => is_array($identity) ? ($identity['sex_at_birth'] ?? null) : null,
             'patientAge' => PatientAge::fromDateOfBirth(
                 is_array($identity) ? ($identity['date_of_birth'] ?? null) : null,
@@ -421,8 +446,13 @@ class PatientIntakeController extends Controller
         ManualLocationGeocoder $geocoder,
     ): RedirectResponse {
         $visitData = $this->resolveLocation($request->validated(), $geocoder);
+        $chatHandoff = $request->session()->get('intake.chat_handoff');
+
+        if (is_array($chatHandoff)) {
+            $visitData['consultant_handoff'] = $chatHandoff;
+        }
+
         $request->session()->put('intake.visit', $visitData);
-        $request->session()->forget('intake.chat_handoff');
 
         if ($request->boolean('streamlined')) {
             return $this->persistIntake($request, 'assessment.ready', $safetyScreener);
@@ -602,6 +632,25 @@ class PatientIntakeController extends Controller
                     $manualVitals = [];
                 }
 
+                $intakeAnswers = [
+                    'arrival_type' => session('intake.arrival_type', 'PRE_ARRIVAL'),
+                    'main_complaint' => $visitData['main_complaint'],
+                    'symptom_details' => $visitData['symptom_details'] ?? null,
+                    'symptom_onset' => $visitData['symptom_onset'] ?? null,
+                    'conditions' => $history['conditions'],
+                    'allergies' => $history['allergies'],
+                    'medications' => $history['medications'],
+                    'history_status' => [
+                        'conditions' => $history['conditions_status'] ?? 'DETAILS',
+                        'allergies' => $history['allergies_status'] ?? 'DETAILS',
+                        'medications' => $history['medications_status'] ?? 'DETAILS',
+                    ],
+                ];
+
+                if (is_array($visitData['consultant_handoff'] ?? null)) {
+                    $intakeAnswers['consultant_handoff'] = $visitData['consultant_handoff'];
+                }
+
                 $visit = $patient->visits()->create([
                     'preselected_hospital_id' => $visitData['preselected_hospital_id']
                         ?? session('intake.preselected_hospital_id'),
@@ -616,20 +665,7 @@ class PatientIntakeController extends Controller
                     'latitude' => $visitData['latitude'] ?? null,
                     'longitude' => $visitData['longitude'] ?? null,
                     'manual_vitals' => $manualVitals ?: null,
-                    'intake_answers' => [
-                        'arrival_type' => session('intake.arrival_type', 'PRE_ARRIVAL'),
-                        'main_complaint' => $visitData['main_complaint'],
-                        'symptom_details' => $visitData['symptom_details'] ?? null,
-                        'symptom_onset' => $visitData['symptom_onset'] ?? null,
-                        'conditions' => $history['conditions'],
-                        'allergies' => $history['allergies'],
-                        'medications' => $history['medications'],
-                        'history_status' => [
-                            'conditions' => $history['conditions_status'] ?? 'DETAILS',
-                            'allergies' => $history['allergies_status'] ?? 'DETAILS',
-                            'medications' => $history['medications_status'] ?? 'DETAILS',
-                        ],
-                    ],
+                    'intake_answers' => $intakeAnswers,
                 ]);
 
                 $visit->assessment()->create(['status' => AssessmentStatus::Pending]);
@@ -696,6 +732,35 @@ class PatientIntakeController extends Controller
             ->unique(fn (string $line): string => mb_strtolower($line))
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array{mainComplaint: string, messageCount: int, facts: array<int, array{topic: string, label: string, answer: string}>}|null
+     */
+    private function consultationHandoffForPage(mixed $handoff): ?array
+    {
+        if (! is_array($handoff) || ! is_string($handoff['main_complaint'] ?? null)) {
+            return null;
+        }
+
+        $facts = collect(is_array($handoff['facts'] ?? null) ? $handoff['facts'] : [])
+            ->filter(fn (mixed $fact): bool => is_array($fact)
+                && is_string($fact['topic'] ?? null)
+                && is_string($fact['label'] ?? null)
+                && is_string($fact['answer'] ?? null))
+            ->map(fn (array $fact): array => [
+                'topic' => $fact['topic'],
+                'label' => $fact['label'],
+                'answer' => $fact['answer'],
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'mainComplaint' => $handoff['main_complaint'],
+            'messageCount' => (int) ($handoff['message_count'] ?? 0),
+            'facts' => $facts,
+        ];
     }
 
     private function resumeHref(Visit $visit): string

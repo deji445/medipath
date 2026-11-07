@@ -166,8 +166,26 @@ class PatientIntakeTest extends TestCase
                 'phone_number' => '024 123 4567',
                 'streamlined' => '1',
             ])
-            ->assertRedirect('/intake/verify-phone')
+            ->assertRedirect('/intake?continuing=consultation')
             ->assertSessionHas('intake.chat_handoff', $handoff);
+
+        $this->withSession([
+            'intake.chat_handoff' => $handoff,
+            'intake.pending_phone_verification' => [
+                'phone' => '+233241234567',
+                'attempts' => 0,
+                'resend_count' => 0,
+                'expires_at' => now()->addMinutes(10)->toIso8601String(),
+                'next_resend_at' => now()->subSecond()->toIso8601String(),
+            ],
+            'intake.demo_verification_code' => '123456',
+        ])->get('/intake?continuing=consultation')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('intake/Start')
+                ->where('consultationHandoff.mainComplaint', $handoff['main_complaint'])
+                ->where('phoneVerification.phoneNumber', '•••••••••4567')
+                ->where('phoneVerification.demoCode', '123456'));
 
         $this->withSession([
             'intake.identity' => [
@@ -186,7 +204,8 @@ class PatientIntakeTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('intake/Visit')
-                ->where('visit.main_complaint', $handoff['main_complaint']));
+                ->where('visit.main_complaint', $handoff['main_complaint'])
+                ->where('consultationHandoff.mainComplaint', $handoff['main_complaint']));
     }
 
     public function test_a_new_patient_can_complete_the_intake_workflow(): void
