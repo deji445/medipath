@@ -56,6 +56,7 @@ class PatientSubmissionController extends Controller
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
+                'isLivePartner' => (bool) $hospital->is_live_partner,
             ],
             'patient' => [
                 'name' => trim($visit->patient->first_name.' '.$visit->patient->last_name),
@@ -163,6 +164,7 @@ class PatientSubmissionController extends Controller
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
+                'isLivePartner' => (bool) $hospital->is_live_partner,
             ],
         ]);
     }
@@ -186,6 +188,7 @@ class PatientSubmissionController extends Controller
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
+                'isLivePartner' => (bool) $hospital->is_live_partner,
             ],
             'plan' => $planner->plan($visit, $hospital),
             'emergencyContact' => [

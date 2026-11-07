@@ -69,12 +69,15 @@ class AssessmentRoutingTest extends TestCase
             $table->string('routing_mode');
             $table->boolean('accepting_submissions')->default(true);
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_live_partner')->default(false);
             $table->string('brand_name')->nullable();
             $table->string('brand_color')->nullable();
             $table->string('logo_url')->nullable();
             $table->string('address')->nullable();
             $table->decimal('latitude', 9, 6)->nullable();
             $table->decimal('longitude', 9, 6)->nullable();
+            $table->text('directory_source_url')->nullable();
+            $table->timestamp('directory_verified_at')->nullable();
             $table->timestamps();
         });
 
@@ -526,7 +529,8 @@ class AssessmentRoutingTest extends TestCase
                 ->component('routing/Index')
                 ->has('hospitals', 1)
                 ->where('hospitals.0.id', $emergency->getKey())
-                ->where('hospitals.0.recommended', true));
+                ->where('hospitals.0.recommended', true)
+                ->where('hospitals.0.isLivePartner', false));
     }
 
     public function test_medium_priority_routing_is_deterministic_and_selection_is_saved_without_sharing(): void

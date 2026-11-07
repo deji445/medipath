@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    Building2,
-    Check,
-    ClipboardList,
-    LockKeyhole,
-    ShieldCheck,
-} from '@lucide/vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
+import { Form, Head, Link } from "@inertiajs/vue3";
+import { ArrowRight, Building2, Check, ClipboardList, LockKeyhole, ShieldCheck } from "@lucide/vue";
+import InputError from "@/components/InputError.vue";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 defineProps<{
-    hospital: { name: string; fullName: string; address?: string | null };
+    hospital: {
+        name: string;
+        fullName: string;
+        address?: string | null;
+        isLivePartner: boolean;
+    };
     patient: { name: string; age: number };
     assessment: {
-        severity: 'LOW' | 'MEDIUM' | 'HIGH';
+        severity: "LOW" | "MEDIUM" | "HIGH";
         summary: string;
     };
     sharedGroups: string[];
@@ -26,9 +24,7 @@ defineProps<{
 <template>
     <Head title="Review sharing consent" />
 
-    <section
-        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-    >
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="p-6 sm:p-8">
             <div class="flex items-start gap-4">
                 <div
@@ -38,36 +34,24 @@ defineProps<{
                     <ShieldCheck class="size-5" />
                 </div>
                 <div>
-                    <h1
-                        class="text-2xl font-semibold text-balance text-slate-950"
-                    >
+                    <h1 class="text-2xl font-semibold text-balance text-slate-950">
                         Review before sharing
                     </h1>
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                        The intake is still private. Confirm the destination and
-                        information below before sending it to the hospital.
+                        The intake is still private. Confirm the destination and information below
+                        before saving this pre-arrival record.
                     </p>
                 </div>
             </div>
 
-            <div
-                class="mt-6 flex gap-4 rounded-xl border border-teal-200 bg-teal-50 p-5"
-            >
-                <Building2
-                    class="mt-0.5 size-5 shrink-0 text-teal-800"
-                    aria-hidden="true"
-                />
+            <div class="mt-6 flex gap-4 rounded-xl border border-teal-200 bg-teal-50 p-5">
+                <Building2 class="mt-0.5 size-5 shrink-0 text-teal-800" aria-hidden="true" />
                 <div>
-                    <p class="text-xs font-medium text-teal-800">
-                        Selected destination
-                    </p>
+                    <p class="text-xs font-medium text-teal-800">Selected destination</p>
                     <h2 class="mt-1 font-semibold text-teal-950">
                         {{ hospital.fullName }}
                     </h2>
-                    <p
-                        v-if="hospital.address"
-                        class="mt-1 text-sm text-teal-900"
-                    >
+                    <p v-if="hospital.address" class="mt-1 text-sm text-teal-900">
                         {{ hospital.address }}
                     </p>
                 </div>
@@ -76,12 +60,9 @@ defineProps<{
             <div class="mt-7 grid gap-7 md:grid-cols-[1fr_0.9fr]">
                 <div>
                     <div class="flex items-center gap-2">
-                        <ClipboardList
-                            class="size-5 text-teal-700"
-                            aria-hidden="true"
-                        />
+                        <ClipboardList class="size-5 text-teal-700" aria-hidden="true" />
                         <h2 class="font-semibold text-slate-950">
-                            Information that will be shared
+                            Information included in the record
                         </h2>
                     </div>
                     <ul class="mt-4 grid gap-3 text-sm text-slate-700">
@@ -107,24 +88,23 @@ defineProps<{
                         {{ assessment.summary }}
                     </p>
                     <p class="mt-4 text-xs font-medium text-slate-500">
-                        {{ assessment.severity.toLowerCase() }}-priority
-                        assessment
+                        {{ assessment.severity.toLowerCase() }}-priority assessment
                     </p>
                 </div>
             </div>
 
-            <div
-                class="mt-7 flex gap-3 border-t border-slate-200 pt-6 text-sm text-slate-600"
-            >
-                <LockKeyhole
-                    class="mt-0.5 size-5 shrink-0 text-slate-500"
-                    aria-hidden="true"
-                />
+            <div class="mt-7 flex gap-3 border-t border-slate-200 pt-6 text-sm text-slate-600">
+                <LockKeyhole class="mt-0.5 size-5 shrink-0 text-slate-500" aria-hidden="true" />
                 <p class="max-w-2xl leading-6">
-                    This creates a read-only clinical snapshot for
-                    {{ hospital.name }}. It is not sent to other hospitals, and
-                    hospital staff cannot change the facts the patient
-                    submitted.
+                    <template v-if="hospital.isLivePartner">
+                        This creates a read-only clinical snapshot for
+                        {{ hospital.name }}. It is not sent to other hospitals.
+                    </template>
+                    <template v-else>
+                        {{ hospital.name }} is a directory destination, not a connected MediPath
+                        partner. This demo record stays in MediPath and is not delivered to the
+                        facility.
+                    </template>
                 </p>
             </div>
 
@@ -145,8 +125,14 @@ defineProps<{
                         class="mt-0.5 size-5 shrink-0 accent-teal-700"
                     />
                     <span class="text-sm leading-6 text-slate-800">
-                        I confirm that the patient agrees to share this intake
-                        with {{ hospital.fullName }} for pre-arrival review.
+                        <template v-if="hospital.isLivePartner">
+                            I confirm that the patient agrees to share this intake with
+                            {{ hospital.fullName }} for pre-arrival review.
+                        </template>
+                        <template v-else>
+                            I confirm that the patient agrees to save this intake in MediPath with
+                            {{ hospital.fullName }} as the intended destination.
+                        </template>
                     </span>
                 </label>
                 <InputError class="mt-2" :message="errors.share_consent" />
@@ -156,12 +142,14 @@ defineProps<{
                 >
                     <Button class="w-full sm:w-auto" :disabled="processing">
                         <Spinner v-if="processing" />
-                        {{ processing ? 'Sending securely…' : 'Send intake' }}
-                        <ArrowRight
-                            v-if="!processing"
-                            class="size-4"
-                            aria-hidden="true"
-                        />
+                        {{
+                            processing
+                                ? "Saving securely…"
+                                : hospital.isLivePartner
+                                  ? "Send intake"
+                                  : "Save intake"
+                        }}
+                        <ArrowRight v-if="!processing" class="size-4" aria-hidden="true" />
                     </Button>
                     <Link
                         href="/intake/routing"

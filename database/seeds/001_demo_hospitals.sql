@@ -12,52 +12,65 @@ insert into hospitals (
     brand_color,
     address,
     latitude,
-    longitude
+    longitude,
+    is_live_partner,
+    directory_source_url,
+    directory_verified_at
 )
 values
     (
         '00000000-0000-4000-8000-000000000001',
-        'hospital-a',
-        'MediPath Demo General Hospital',
+        'korle-bu-teaching-hospital',
+        'Korle Bu Teaching Hospital',
         'ER_CAPABLE',
-        'AUTO',
+        'MANUAL',
         true,
         true,
-        'MediPath General',
-        '#0F5C5E',
-        'Demo location A, Accra',
-        5.603717,
-        -0.186964
+        'Korle Bu Teaching Hospital',
+        '#197F6D',
+        'Guggisberg Avenue, Korle Bu, Accra · GA-221-1570',
+        5.537430,
+        -0.227400,
+        false,
+        'https://kbth.gov.gh/',
+        '2026-11-07 00:00:00+00'
     ),
     (
         '00000000-0000-4000-8000-000000000002',
-        'hospital-b',
-        'MediPath Demo Community Clinic',
+        'adabraka-polyclinic',
+        'Adabraka Polyclinic',
         'CLINIC_ONLY',
         'MANUAL',
         true,
         true,
-        'Community Clinic',
-        '#315A8C',
-        'Demo location B, Accra',
-        5.613717,
-        -0.176964
+        'Adabraka Polyclinic',
+        '#197F6D',
+        'Castle Road, Adabraka, Accra · GA-050-3303',
+        5.561884,
+        -0.205108,
+        false,
+        'https://www.ghaneps.gov.gh/epps/prepareViewCAOrganisation.do?id=20629',
+        '2026-11-07 00:00:00+00'
     ),
     (
         '00000000-0000-4000-8000-000000000003',
-        'hospital-c',
-        'MediPath Demo Emergency Centre',
+        'greater-accra-regional-hospital',
+        'Greater Accra Regional Hospital',
         'ER_CAPABLE',
         'MANUAL',
         true,
         true,
-        'MediPath Emergency Centre',
-        '#374151',
-        'Demo location C, Accra',
-        5.593717,
-        -0.196964
+        'Greater Accra Regional Hospital',
+        '#197F6D',
+        'Castle Road, Ridge, Accra · GA-052-7021',
+        5.562110,
+        -0.198930,
+        false,
+        'https://garh.gov.gh/services/accidents-emergency-service/',
+        '2026-11-07 00:00:00+00'
     )
-on conflict (slug) do update set
+on conflict (id) do update set
+    slug = excluded.slug,
     name = excluded.name,
     capability = excluded.capability,
     routing_mode = excluded.routing_mode,
@@ -67,7 +80,10 @@ on conflict (slug) do update set
     brand_color = excluded.brand_color,
     address = excluded.address,
     latitude = excluded.latitude,
-    longitude = excluded.longitude;
+    longitude = excluded.longitude,
+    is_live_partner = excluded.is_live_partner,
+    directory_source_url = excluded.directory_source_url,
+    directory_verified_at = excluded.directory_verified_at;
 
 commit;
 

@@ -64,12 +64,15 @@ class HospitalSubmissionFlowTest extends TestCase
             $table->string('routing_mode');
             $table->boolean('accepting_submissions')->default(true);
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_live_partner')->default(false);
             $table->string('brand_name')->nullable();
             $table->string('brand_color')->nullable();
             $table->string('logo_url')->nullable();
             $table->string('address')->nullable();
             $table->decimal('latitude', 9, 6)->nullable();
             $table->decimal('longitude', 9, 6)->nullable();
+            $table->text('directory_source_url')->nullable();
+            $table->timestamp('directory_verified_at')->nullable();
             $table->timestamps();
         });
 
@@ -150,6 +153,7 @@ class HospitalSubmissionFlowTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('submission/Review')
                 ->where('hospital.name', 'MediPath General')
+                ->where('hospital.isLivePartner', false)
                 ->where('patient.name', 'Demo Patient')
                 ->where('assessment.severity', 'MEDIUM')
                 ->has('sharedGroups', 4));

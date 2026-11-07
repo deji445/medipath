@@ -6,6 +6,7 @@ use App\Enums\HospitalCapability;
 use App\Enums\RoutingMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -15,11 +16,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property RoutingMode $routing_mode
  * @property bool $accepting_submissions
  * @property bool $is_active
+ * @property bool $is_live_partner
  * @property string|null $brand_name
  * @property string|null $brand_color
  * @property string|null $address
  * @property string|null $latitude
  * @property string|null $longitude
+ * @property string|null $directory_source_url
+ * @property Carbon|null $directory_verified_at
  * @property int|null $staff_users_count
  * @property int|null $submissions_count
  */
@@ -37,12 +41,15 @@ class Hospital extends Model
         'routing_mode',
         'accepting_submissions',
         'is_active',
+        'is_live_partner',
         'brand_name',
         'brand_color',
         'logo_url',
         'address',
         'latitude',
         'longitude',
+        'directory_source_url',
+        'directory_verified_at',
     ];
 
     /**
@@ -55,8 +62,10 @@ class Hospital extends Model
             'routing_mode' => RoutingMode::class,
             'accepting_submissions' => 'boolean',
             'is_active' => 'boolean',
+            'is_live_partner' => 'boolean',
             'latitude' => 'decimal:6',
             'longitude' => 'decimal:6',
+            'directory_verified_at' => 'datetime',
         ];
     }
 

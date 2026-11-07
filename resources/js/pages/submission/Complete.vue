@@ -10,17 +10,23 @@ const props = defineProps<{
         receivedAt?: string | null;
         status: "RECEIVED" | "ACKNOWLEDGED" | "IN_TRIAGE" | "CLOSED";
     };
-    hospital: { name: string; fullName: string; address?: string | null };
+    hospital: {
+        name: string;
+        fullName: string;
+        address?: string | null;
+        isLivePartner: boolean;
+    };
 }>();
 
-const statusLabel = computed(
-    () =>
-        ({
-            RECEIVED: "Waiting for acknowledgement",
-            ACKNOWLEDGED: "Acknowledged by the hospital",
-            IN_TRIAGE: "Triage is in progress",
-            CLOSED: "Case closed by the hospital",
-        })[props.submission.status],
+const statusLabel = computed(() =>
+    !props.hospital.isLivePartner
+        ? "Saved in MediPath demo"
+        : {
+              RECEIVED: "Waiting for acknowledgement",
+              ACKNOWLEDGED: "Acknowledged by the hospital",
+              IN_TRIAGE: "Triage is in progress",
+              CLOSED: "Case closed by the hospital",
+          }[props.submission.status],
 );
 
 const referenceGroups = computed(() => props.submission.reference.split("-"));
@@ -47,11 +53,18 @@ function dateTime(value?: string | null): string {
                 <Check class="size-6" />
             </div>
             <h1 class="mt-5 text-2xl font-semibold text-balance">
-                Intake sent to {{ hospital.name }}
+                {{ hospital.isLivePartner ? "Intake sent to" : "Demo intake saved for" }}
+                {{ hospital.name }}
             </h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-teal-50">
-                The hospital admissions team can now review the patient’s submitted information
-                before arrival.
+                <template v-if="hospital.isLivePartner">
+                    The hospital admissions team can now review the patient’s submitted information
+                    before arrival.
+                </template>
+                <template v-else>
+                    This record is stored in MediPath for demonstration. It has not been sent to the
+                    facility and does not reserve care.
+                </template>
             </p>
         </div>
 
@@ -104,7 +117,14 @@ function dateTime(value?: string | null): string {
             >
                 <ShieldCheck class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                 <p class="text-sm leading-6">
-                    Sending this intake does not confirm an appointment or replace emergency care.
+                    <template v-if="hospital.isLivePartner">
+                        Sending this intake does not confirm an appointment or replace emergency
+                        care.
+                    </template>
+                    <template v-else>
+                        This directory selection does not contact the facility, request an
+                        ambulance, or confirm an appointment.
+                    </template>
                     If symptoms become severe, seek urgent professional help immediately.
                 </p>
             </div>

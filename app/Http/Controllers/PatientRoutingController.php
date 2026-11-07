@@ -126,6 +126,7 @@ class PatientRoutingController extends Controller
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
+                'isLivePartner' => (bool) $hospital->is_live_partner,
             ],
             'severity' => $visit->assessment?->severity?->value,
         ]);

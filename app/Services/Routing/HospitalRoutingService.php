@@ -18,6 +18,9 @@ final class HospitalRoutingService
      *     capability: string,
      *     routingMode: string,
      *     distanceKm: float|null,
+     *     isLivePartner: bool,
+     *     directorySourceUrl: string|null,
+     *     directoryVerifiedAt: string|null,
      *     availabilityUpdatedAt: string|null,
      *     suitabilityRank: int,
      *     reasons: array<int, string>,
@@ -52,7 +55,12 @@ final class HospitalRoutingService
                     'capability' => $hospital->capability->value,
                     'routingMode' => $hospital->routing_mode->value,
                     'distanceKm' => $distance,
-                    'availabilityUpdatedAt' => $hospital->updated_at?->toIso8601String(),
+                    'availabilityUpdatedAt' => $hospital->is_live_partner
+                        ? $hospital->updated_at?->toIso8601String()
+                        : null,
+                    'isLivePartner' => (bool) $hospital->is_live_partner,
+                    'directorySourceUrl' => $hospital->directory_source_url,
+                    'directoryVerifiedAt' => $hospital->directory_verified_at?->toDateString(),
                     'suitabilityRank' => $suitability,
                     'reasons' => $this->reasons($visit, $hospital, $severity, $distance),
                 ];
@@ -115,13 +123,15 @@ final class HospitalRoutingService
 
         if ($hospital->capability === HospitalCapability::EmergencyCapable) {
             $reasons[] = $severity === SeverityLevel::High
-                ? 'Can receive higher-acuity emergency cases'
-                : 'Emergency-capable clinical services';
+                ? 'Official facility information lists accident and emergency services'
+                : 'Official facility information lists emergency services';
         } else {
-            $reasons[] = 'Suitable for routine and lower-acuity concerns';
+            $reasons[] = 'Listed as a polyclinic for routine and lower-acuity care';
         }
 
-        $reasons[] = 'Currently accepting MediPath prototype submissions';
+        $reasons[] = $hospital->is_live_partner
+            ? 'Connected to MediPath for live pre-arrival intake'
+            : 'Included in MediPath’s prototype facility directory';
 
         if ($distance !== null) {
             $reasons[] = number_format($distance, 1).' km straight-line distance from the supplied location';

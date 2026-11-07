@@ -29,7 +29,7 @@ class HospitalAdmissionsDemoSeeder extends Seeder
     {
         abort_unless(app()->environment('local'), 403, 'Admissions demo data is local-only.');
 
-        $hospital = Hospital::query()->where('slug', 'hospital-a')->firstOrFail();
+        $hospital = Hospital::query()->findOrFail('00000000-0000-4000-8000-000000000001');
         $demoPassword = config('medipath.demo_staff_password');
 
         if (is_string($demoPassword) && $demoPassword !== '') {
