@@ -105,9 +105,9 @@ function removeMedication(index: number) {
 <template>
     <Head title="Patient profile" />
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="grid lg:grid-cols-[0.72fr_1.28fr]">
+        <div class="grid lg:grid-cols-[0.72fr_1.28fr] xl:grid-cols-1">
             <aside
-                class="hidden border-b border-teal-200 bg-teal-50 p-6 lg:block lg:border-r lg:border-b-0 lg:p-8"
+                class="hidden border-b border-teal-200 bg-teal-50 p-6 lg:block lg:border-r lg:border-b-0 lg:p-8 xl:hidden"
             >
                 <div
                     class="flex size-11 items-center justify-center rounded-xl border border-teal-200 bg-white text-teal-700"

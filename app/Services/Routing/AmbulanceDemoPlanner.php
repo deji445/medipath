@@ -14,7 +14,9 @@ final class AmbulanceDemoPlanner
      *     etaMaxMinutes: int,
      *     usesEstimatedLocation: bool,
      *     demoDurationSeconds: int,
-     *     patientLocation: string
+     *     patientLocation: string,
+     *     hospitalCoordinates: array{latitude: float, longitude: float},
+     *     patientCoordinates: array{latitude: float, longitude: float}
      * }
      */
     public function plan(Visit $visit, Hospital $hospital): array
@@ -22,6 +24,15 @@ final class AmbulanceDemoPlanner
         $distance = $this->distanceInKilometres($visit, $hospital);
         $usesEstimatedLocation = $distance === null;
         $distance ??= 6.4;
+
+        $hospitalLatitude = (float) ($hospital->latitude ?? 5.5560);
+        $hospitalLongitude = (float) ($hospital->longitude ?? -0.1969);
+        $patientLatitude = $visit->latitude !== null
+            ? (float) $visit->latitude
+            : $hospitalLatitude + 0.035;
+        $patientLongitude = $visit->longitude !== null
+            ? (float) $visit->longitude
+            : $hospitalLongitude + 0.045;
 
         // The simulation assumes urban traffic at roughly 33 km/h and a
         // three-minute mobilisation period. It is not an operational ETA.
@@ -36,6 +47,14 @@ final class AmbulanceDemoPlanner
             'patientLocation' => trim((string) $visit->manual_location) !== ''
                 ? (string) $visit->manual_location
                 : 'Patient location',
+            'hospitalCoordinates' => [
+                'latitude' => round($hospitalLatitude, 6),
+                'longitude' => round($hospitalLongitude, 6),
+            ],
+            'patientCoordinates' => [
+                'latitude' => round($patientLatitude, 6),
+                'longitude' => round($patientLongitude, 6),
+            ],
         ];
     }
 

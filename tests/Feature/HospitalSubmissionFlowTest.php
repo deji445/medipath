@@ -235,6 +235,10 @@ class HospitalSubmissionFlowTest extends TestCase
                 ->where('hospital.name', 'MediPath General')
                 ->where('plan.distanceKm', 6.4)
                 ->where('plan.usesEstimatedLocation', true)
+                ->where('plan.hospitalCoordinates.latitude', 5.556)
+                ->where('plan.hospitalCoordinates.longitude', -0.1969)
+                ->where('plan.patientCoordinates.latitude', 5.591)
+                ->where('plan.patientCoordinates.longitude', -0.1519)
                 ->where('emergencyContact.phone', '112'));
     }
 
