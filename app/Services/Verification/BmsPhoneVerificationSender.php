@@ -10,17 +10,31 @@ use Illuminate\Support\Facades\Log;
 
 final class BmsPhoneVerificationSender implements PhoneVerificationSender
 {
+    public function __construct(
+        private readonly VerificationDeliveryRecorder $deliveryRecorder,
+    ) {}
+
     public function send(string $phoneNumber, string $code): void
     {
+        $startedAt = hrtime(true);
         $endpoint = (string) config('medipath.phone_verification.bms.endpoint');
         $apiKey = (string) config('medipath.phone_verification.bms.api_key');
         $senderId = (string) config('medipath.phone_verification.bms.sender_id');
 
         if ($endpoint === '' || $apiKey === '' || $senderId === '') {
+            $this->deliveryRecorder->recordDeferred(
+                'FAILED',
+                $startedAt,
+                0,
+                errorCode: 'BMS_NOT_CONFIGURED',
+            );
+
             throw new PhoneVerificationDeliveryException('BMS_NOT_CONFIGURED');
         }
 
-        for ($attempt = 1; $attempt <= 2; $attempt++) {
+        $maxAttempts = max(1, min((int) config('medipath.phone_verification.bms.max_attempts', 2), 3));
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
                 $response = Http::acceptJson()
                     ->asJson()
@@ -41,9 +55,18 @@ final class BmsPhoneVerificationSender implements PhoneVerificationSender
                     'attempt' => $attempt,
                 ]);
 
-                if ($attempt === 1) {
+                if ($attempt < $maxAttempts) {
+                    $this->pauseBeforeRetry();
+
                     continue;
                 }
+
+                $this->deliveryRecorder->recordDeferred(
+                    'FAILED',
+                    $startedAt,
+                    $attempt,
+                    errorCode: 'BMS_CONNECTION_FAILED',
+                );
 
                 // BMS authenticates through the query string. Do not retain the
                 // provider exception because its URL may contain the API key.
@@ -51,6 +74,15 @@ final class BmsPhoneVerificationSender implements PhoneVerificationSender
             }
 
             if ($this->wasAccepted($response)) {
+                $this->deliveryRecorder->recordDeferred(
+                    'ACCEPTED',
+                    $startedAt,
+                    $attempt,
+                    $this->safeProviderReference($response),
+                    $this->safeProviderCode($response),
+                    $response->status(),
+                );
+
                 return;
             }
 
@@ -60,7 +92,9 @@ final class BmsPhoneVerificationSender implements PhoneVerificationSender
                 'attempt' => $attempt,
             ]);
 
-            if ($attempt === 1 && $this->isRetryable($response)) {
+            if ($attempt < $maxAttempts && $this->isRetryable($response)) {
+                $this->pauseBeforeRetry();
+
                 continue;
             }
 
@@ -68,8 +102,25 @@ final class BmsPhoneVerificationSender implements PhoneVerificationSender
                 ? 'BMS_REQUEST_REJECTED'
                 : 'BMS_HTTP_'.$response->status();
 
+            $this->deliveryRecorder->recordDeferred(
+                'FAILED',
+                $startedAt,
+                $attempt,
+                $this->safeProviderReference($response),
+                $this->safeProviderCode($response),
+                $response->status(),
+                $errorCode,
+            );
+
             throw new PhoneVerificationDeliveryException($errorCode);
         }
+
+        $this->deliveryRecorder->recordDeferred(
+            'FAILED',
+            $startedAt,
+            $maxAttempts,
+            errorCode: 'BMS_CONNECTION_FAILED',
+        );
 
         throw new PhoneVerificationDeliveryException('BMS_CONNECTION_FAILED');
     }
@@ -106,8 +157,29 @@ final class BmsPhoneVerificationSender implements PhoneVerificationSender
             : null;
     }
 
+    private function safeProviderReference(Response $response): ?string
+    {
+        $reference = $response->json('summary._id');
+
+        return is_string($reference) && preg_match('/^[A-Za-z0-9_-]{1,100}$/', $reference) === 1
+            ? $reference
+            : null;
+    }
+
     private function isRetryable(Response $response): bool
     {
         return in_array($response->status(), [408, 429], true) || $response->serverError();
+    }
+
+    private function pauseBeforeRetry(): void
+    {
+        $milliseconds = max(0, min(
+            (int) config('medipath.phone_verification.bms.retry_delay_ms', 500),
+            5000,
+        ));
+
+        if ($milliseconds > 0) {
+            usleep($milliseconds * 1000);
+        }
     }
 }

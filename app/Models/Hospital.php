@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $longitude
  * @property string|null $directory_source_url
  * @property Carbon|null $directory_verified_at
+ * @property Carbon|null $updated_at
  * @property int|null $staff_users_count
  * @property int|null $submissions_count
  */

@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $longitude
  * @property int $age_years
  * @property string $patient_id
+ * @property VisitStatus $status
  * @property FillingAs $filling_as
  * @property SexAtBirth $sex_at_birth
  * @property PregnancyStatus $pregnancy_status

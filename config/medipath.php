@@ -13,6 +13,8 @@ return [
             'sender_id' => env('BMS_SENDER_ID', 'medipath'),
             'connect_timeout' => (int) env('BMS_CONNECT_TIMEOUT', 5),
             'timeout' => (int) env('BMS_TIMEOUT', 10),
+            'max_attempts' => (int) env('BMS_MAX_ATTEMPTS', 2),
+            'retry_delay_ms' => (int) env('BMS_RETRY_DELAY_MS', 500),
         ],
         'nalo' => [
             'endpoint' => env('NALO_SMS_ENDPOINT', 'https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/'),
