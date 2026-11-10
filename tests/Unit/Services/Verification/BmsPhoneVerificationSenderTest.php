@@ -22,7 +22,7 @@ class BmsPhoneVerificationSenderTest extends TestCase
             'medipath.phone_verification.expiry_minutes' => 10,
             'medipath.phone_verification.bms.endpoint' => 'https://bms.test/api/sms/quick',
             'medipath.phone_verification.bms.api_key' => 'private-test-key',
-            'medipath.phone_verification.bms.sender_id' => 'medipath',
+            'medipath.phone_verification.bms.sender_id' => 'medpath',
             'medipath.phone_verification.bms.connect_timeout' => 1,
             'medipath.phone_verification.bms.timeout' => 2,
             'medipath.phone_verification.bms.max_attempts' => 2,
@@ -35,12 +35,17 @@ class BmsPhoneVerificationSenderTest extends TestCase
             $table->string('provider');
             $table->string('purpose');
             $table->string('outcome');
+            $table->string('delivery_status')->nullable();
             $table->string('provider_reference')->nullable();
             $table->string('provider_code')->nullable();
             $table->unsignedSmallInteger('http_status')->nullable();
             $table->unsignedInteger('duration_ms');
             $table->unsignedTinyInteger('attempt_count');
+            $table->unsignedSmallInteger('delivery_check_count')->default(0);
+            $table->timestamp('delivery_status_checked_at')->nullable();
+            $table->timestamp('delivery_resolved_at')->nullable();
             $table->string('error_code')->nullable();
+            $table->string('delivery_error_code')->nullable();
             $table->timestamp('created_at');
         });
     }
@@ -61,7 +66,7 @@ class BmsPhoneVerificationSenderTest extends TestCase
         Http::assertSent(function (Request $request): bool {
             return $request->url() === 'https://bms.test/api/sms/quick?key=private-test-key'
                 && $request['recipient'] === ['0244000000']
-                && $request['sender'] === 'medipath'
+                && $request['sender'] === 'medpath'
                 && $request['sms_type'] === 'otp'
                 && $request['is_schedule'] === false
                 && $request['message'] === 'Your MediPath verification code is 123456. It expires in 10 minutes. Do not share this code.';
@@ -71,6 +76,7 @@ class BmsPhoneVerificationSenderTest extends TestCase
             'provider' => 'bms',
             'purpose' => 'phone_verification',
             'outcome' => 'ACCEPTED',
+            'delivery_status' => 'PENDING',
             'provider_reference' => 'A59CCB70-662D-45EF-9976-1EFAD249793D',
             'provider_code' => '2000',
             'http_status' => 200,

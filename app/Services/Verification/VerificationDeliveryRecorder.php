@@ -52,10 +52,13 @@ final class VerificationDeliveryRecorder
         ?string $errorCode = null,
     ): void {
         try {
+            $accepted = $outcome === 'ACCEPTED';
+
             DB::table('verification_delivery_events')->insert([
                 'provider' => 'bms',
                 'purpose' => 'phone_verification',
-                'outcome' => $outcome === 'ACCEPTED' ? 'ACCEPTED' : 'FAILED',
+                'outcome' => $accepted ? 'ACCEPTED' : 'FAILED',
+                'delivery_status' => $accepted ? 'PENDING' : 'FAILED',
                 'provider_reference' => $this->safeValue($providerReference, 100),
                 'provider_code' => $this->safeValue($providerCode, 40),
                 'http_status' => $httpStatus !== null && $httpStatus >= 100 && $httpStatus <= 599
@@ -64,6 +67,7 @@ final class VerificationDeliveryRecorder
                 'duration_ms' => max(0, (int) round((hrtime(true) - $startedAtNanoseconds) / 1_000_000)),
                 'attempt_count' => max(0, min($attemptCount, 10)),
                 'error_code' => $this->safeErrorCode($errorCode),
+                'delivery_resolved_at' => $accepted ? null : now(),
                 'created_at' => now(),
             ]);
         } catch (Throwable $exception) {

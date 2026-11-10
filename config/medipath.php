@@ -9,12 +9,15 @@ return [
         'demo_code' => env('MEDIPATH_PHONE_VERIFICATION_DEMO_CODE'),
         'bms' => [
             'endpoint' => env('BMS_SMS_ENDPOINT', 'https://api.mnotify.com/api/sms/quick'),
+            'report_endpoint' => env('BMS_REPORT_ENDPOINT', 'https://api.mnotify.com/api/campaign'),
             'api_key' => env('BMS_API_KEY'),
-            'sender_id' => env('BMS_SENDER_ID', 'medipath'),
+            'sender_id' => env('BMS_SENDER_ID', 'medpath'),
             'connect_timeout' => (int) env('BMS_CONNECT_TIMEOUT', 5),
             'timeout' => (int) env('BMS_TIMEOUT', 10),
             'max_attempts' => (int) env('BMS_MAX_ATTEMPTS', 2),
             'retry_delay_ms' => (int) env('BMS_RETRY_DELAY_MS', 500),
+            'delivery_batch_size' => (int) env('BMS_DELIVERY_BATCH_SIZE', 50),
+            'delivery_tracking_hours' => (int) env('BMS_DELIVERY_TRACKING_HOURS', 48),
         ],
         'nalo' => [
             'endpoint' => env('NALO_SMS_ENDPOINT', 'https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/'),
