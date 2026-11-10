@@ -7,6 +7,7 @@ return [
         'max_attempts' => (int) env('MEDIPATH_PHONE_VERIFICATION_MAX_ATTEMPTS', 5),
         'resend_cooldown_seconds' => (int) env('MEDIPATH_PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS', 60),
         'demo_code' => env('MEDIPATH_PHONE_VERIFICATION_DEMO_CODE'),
+        'show_code' => (bool) env('MEDIPATH_PHONE_VERIFICATION_SHOW_CODE', false),
         'bms' => [
             'endpoint' => env('BMS_SMS_ENDPOINT', 'https://api.mnotify.com/api/sms/quick'),
             'report_endpoint' => env('BMS_REPORT_ENDPOINT', 'https://api.mnotify.com/api/campaign'),

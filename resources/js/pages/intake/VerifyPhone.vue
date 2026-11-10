@@ -79,14 +79,14 @@ onMounted(() => {
                     v-if="demoCode"
                     class="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
                 >
-                    <p class="font-semibold">Demo verification code</p>
+                    <p class="font-semibold">Prototype verification code</p>
                     <p class="mt-1">
                         Use
                         <strong class="font-mono text-base tracking-widest">{{
                             demoCode
                         }}</strong
-                        >. Demo mode does not verify ownership of this phone
-                        number.
+                        >. This is the same code sent to your phone. It is shown
+                        on screen only while MediPath is being tested.
                     </p>
                 </div>
 

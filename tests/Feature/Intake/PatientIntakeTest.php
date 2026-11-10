@@ -118,7 +118,7 @@ class PatientIntakeTest extends TestCase
             'medipath.phone_verification.driver' => 'bms',
             'medipath.phone_verification.bms.endpoint' => 'https://bms.test/api/sms/quick',
             'medipath.phone_verification.bms.api_key' => 'private-test-key',
-            'medipath.phone_verification.bms.sender_id' => 'MediPath',
+            'medipath.phone_verification.bms.sender_id' => 'medpath',
         ]);
         Http::fake(['https://bms.test/api/sms/quick*' => Http::response([], 503)]);
 
@@ -139,6 +139,35 @@ class PatientIntakeTest extends TestCase
         $this->post('/intake/lookup', ['phone_number' => '0241234567'])
             ->assertRedirect('/intake/verify-phone')
             ->assertSessionHas('intake.demo_verification_code', '123456');
+
+        $this->get('/intake/verify-phone')->assertOk()->assertInertia(
+            fn (Assert $page) => $page
+                ->component('intake/VerifyPhone')
+                ->where('demoCode', '123456'),
+        );
+    }
+
+    public function test_bms_verification_can_show_the_same_code_during_explicit_prototype_mode(): void
+    {
+        config()->set([
+            'medipath.phone_verification.driver' => 'bms',
+            'medipath.phone_verification.show_code' => true,
+            'medipath.phone_verification.bms.endpoint' => 'https://bms.test/api/sms/quick',
+            'medipath.phone_verification.bms.api_key' => 'private-test-key',
+            'medipath.phone_verification.bms.sender_id' => 'medpath',
+        ]);
+        Http::fake(['https://bms.test/api/sms/quick*' => Http::response([
+            'status' => 'success',
+            'code' => '2000',
+            'summary' => ['_id' => 'prototype-campaign'],
+        ])]);
+
+        $this->post('/intake/lookup', ['phone_number' => '0241234567'])
+            ->assertRedirect('/intake/verify-phone')
+            ->assertSessionHas('intake.demo_verification_code', '123456');
+
+        Http::assertSent(fn ($request): bool => $request['sender'] === 'medpath'
+            && $request['message'] === 'Your MediPath verification code is 123456. It expires in 10 minutes. Do not share this code.');
 
         $this->get('/intake/verify-phone')->assertOk()->assertInertia(
             fn (Assert $page) => $page

@@ -34,7 +34,8 @@ class PhoneVerificationService
                     (int) config('medipath.phone_verification.expiry_minutes', 10),
                 )->toIso8601String(),
             ],
-            'demo_code' => $driver === 'demo'
+            'demo_code' => (bool) config('medipath.phone_verification.show_code', false)
+                || $driver === 'demo'
                 || ($driver === 'local' && ! app()->isProduction()) ? $code : null,
         ];
     }
