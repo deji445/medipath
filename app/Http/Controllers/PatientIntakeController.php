@@ -33,8 +33,10 @@ class PatientIntakeController extends Controller
 {
     public function __construct(private readonly RecoverableDatabaseTransaction $transactions) {}
 
-    public function start(Request $request): Response
-    {
+    public function start(
+        Request $request,
+        PhoneVerificationService $verification,
+    ): Response {
         if ($request->boolean('restart')) {
             $request->session()->forget('intake');
             $request->session()->forget(['active_visit_reference', 'assessment_red_flags']);
@@ -61,6 +63,24 @@ class PatientIntakeController extends Controller
             : null;
         $chatHandoff = $request->session()->get('intake.chat_handoff');
         $phoneChallenge = $request->session()->get('intake.pending_phone_verification');
+
+        // A verified phone and a pending challenge must never compete for the
+        // same intake. This can happen when a consultation is continued from
+        // a long-lived browser session that still contains an older OTP.
+        if (is_string($request->session()->get('intake.phone')) && is_array($phoneChallenge)) {
+            $request->session()->forget([
+                'intake.pending_phone_verification',
+                'intake.demo_verification_code',
+            ]);
+            $phoneChallenge = null;
+        }
+
+        $phoneChallengeExpired = is_array($phoneChallenge)
+            && $verification->isExpired($phoneChallenge);
+
+        if ($phoneChallengeExpired) {
+            $request->session()->forget('intake.demo_verification_code');
+        }
 
         return Inertia::render('intake/Start', [
             'phoneNumber' => $request->session()->get('intake.phone'),
@@ -91,7 +111,10 @@ class PatientIntakeController extends Controller
                 && is_string($phoneChallenge['phone'] ?? null) ? [
                     'phoneNumber' => $this->maskPhone($phoneChallenge['phone']),
                     'expiresAt' => $phoneChallenge['expires_at'] ?? null,
-                    'demoCode' => $request->session()->get('intake.demo_verification_code'),
+                    'demoCode' => $phoneChallengeExpired
+                        ? null
+                        : $request->session()->get('intake.demo_verification_code'),
+                    'expired' => $phoneChallengeExpired,
                     'status' => $request->session()->get('status'),
                 ] : null,
         ]);
@@ -111,6 +134,8 @@ class PatientIntakeController extends Controller
         $issued = $verification->issue($phone);
         $request->session()->put('intake.pending_phone_verification', $issued['challenge']);
         $request->session()->put('intake.streamlined', $request->boolean('streamlined'));
+
+        $request->session()->forget('intake.demo_verification_code');
 
         if (is_string($issued['demo_code'])) {
             $request->session()->put('intake.demo_verification_code', $issued['demo_code']);
@@ -133,18 +158,29 @@ class PatientIntakeController extends Controller
             : to_route('intake.phone.verify');
     }
 
-    public function verifyPhone(Request $request): Response|RedirectResponse
-    {
+    public function verifyPhone(
+        Request $request,
+        PhoneVerificationService $verification,
+    ): Response|RedirectResponse {
         $challenge = $request->session()->get('intake.pending_phone_verification');
 
         if (! is_array($challenge) || ! is_string($challenge['phone'] ?? null)) {
             return to_route('intake.start');
         }
 
+        $expired = $verification->isExpired($challenge);
+
+        if ($expired) {
+            $request->session()->forget('intake.demo_verification_code');
+        }
+
         return Inertia::render('intake/VerifyPhone', [
             'phoneNumber' => $this->maskPhone($challenge['phone']),
             'expiresAt' => $challenge['expires_at'] ?? null,
-            'demoCode' => $request->session()->get('intake.demo_verification_code'),
+            'demoCode' => $expired
+                ? null
+                : $request->session()->get('intake.demo_verification_code'),
+            'expired' => $expired,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -228,6 +264,8 @@ class PatientIntakeController extends Controller
 
         $issued = $verification->issue($challenge['phone']);
         $request->session()->put('intake.pending_phone_verification', $issued['challenge']);
+
+        $request->session()->forget('intake.demo_verification_code');
 
         if (is_string($issued['demo_code'])) {
             $request->session()->put('intake.demo_verification_code', $issued['demo_code']);

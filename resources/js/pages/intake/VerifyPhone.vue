@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, CheckCircle2, LockKeyhole, RotateCw } from '@lucide/vue';
+import {
+    AlertCircle,
+    ArrowLeft,
+    CheckCircle2,
+    LockKeyhole,
+    RotateCw,
+} from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import InputError from '@/components/InputError.vue';
@@ -11,11 +17,13 @@ const props = defineProps<{
     phoneNumber: string;
     expiresAt?: string | null;
     demoCode?: string | null;
+    expired?: boolean;
     status?: string | null;
 }>();
 
 const codeInput = ref<HTMLInputElement | null>(null);
 const expiryLabel = computed(() => {
+    if (props.expired) return 'This code has expired.';
     if (!props.expiresAt) return 'The code expires shortly.';
 
     return `The code expires at ${new Intl.DateTimeFormat(undefined, {
@@ -26,7 +34,7 @@ const expiryLabel = computed(() => {
 
 onMounted(() => {
     toast.dismiss();
-    codeInput.value?.focus();
+    if (!props.expired) codeInput.value?.focus();
 });
 </script>
 
@@ -76,7 +84,22 @@ onMounted(() => {
                 </p>
 
                 <div
-                    v-if="demoCode"
+                    v-if="expired"
+                    role="alert"
+                    class="mb-6 flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
+                >
+                    <AlertCircle
+                        class="mt-0.5 size-4 shrink-0"
+                        aria-hidden="true"
+                    />
+                    <p>
+                        This verification code has expired. Request a new code
+                        before continuing.
+                    </p>
+                </div>
+
+                <div
+                    v-else-if="demoCode"
                     class="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
                 >
                     <p class="font-semibold">Prototype verification code</p>
@@ -91,6 +114,7 @@ onMounted(() => {
                 </div>
 
                 <Form
+                    v-if="!expired"
                     action="/intake/verify-phone"
                     method="post"
                     v-slot="{ errors, processing }"

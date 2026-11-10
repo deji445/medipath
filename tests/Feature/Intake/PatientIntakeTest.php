@@ -237,6 +237,71 @@ class PatientIntakeTest extends TestCase
                 ->where('consultationHandoff.mainComplaint', $handoff['main_complaint']));
     }
 
+    public function test_verified_consultation_handoff_ignores_a_stale_pending_code(): void
+    {
+        $patient = Patient::query()->create([
+            'normalized_phone' => '+233241234567',
+            'first_name' => 'Demo',
+            'last_name' => 'Patient',
+            'date_of_birth' => '1990-01-15',
+            'sex_at_birth' => 'MALE',
+        ]);
+        $handoff = [
+            'main_complaint' => 'My ankle hurts when I put weight on it.',
+            'message_count' => 4,
+            'started_at' => now()->toIso8601String(),
+        ];
+
+        $this->withSession([
+            'intake.phone' => $patient->normalized_phone,
+            'intake.patient_id' => $patient->getKey(),
+            'intake.chat_handoff' => $handoff,
+            'intake.pending_phone_verification' => [
+                'phone' => $patient->normalized_phone,
+                'attempts' => 0,
+                'sent_at' => now()->subMinutes(20)->toIso8601String(),
+                'expires_at' => now()->subMinutes(10)->toIso8601String(),
+            ],
+            'intake.demo_verification_code' => '654321',
+        ])->get('/intake?continuing=consultation')
+            ->assertOk()
+            ->assertSessionMissing('intake.pending_phone_verification')
+            ->assertSessionMissing('intake.demo_verification_code')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('intake/Start')
+                ->where('phoneVerification', null)
+                ->where('consultationHandoff.mainComplaint', $handoff['main_complaint']));
+
+        $this->post('/intake/profile', ['history_mode' => 'UNCHANGED'])
+            ->assertRedirect('/intake/visit');
+
+        $this->get('/intake/visit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('intake/Visit')
+                ->where('visit.main_complaint', $handoff['main_complaint'])
+                ->where('consultationHandoff.mainComplaint', $handoff['main_complaint']));
+    }
+
+    public function test_an_expired_code_is_never_shown_as_a_usable_prototype_code(): void
+    {
+        $this->withSession([
+            'intake.pending_phone_verification' => [
+                'phone' => '+233241234567',
+                'attempts' => 0,
+                'sent_at' => now()->subMinutes(20)->toIso8601String(),
+                'expires_at' => now()->subMinutes(10)->toIso8601String(),
+            ],
+            'intake.demo_verification_code' => '654321',
+        ])->get('/intake/verify-phone')
+            ->assertOk()
+            ->assertSessionMissing('intake.demo_verification_code')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('intake/VerifyPhone')
+                ->where('expired', true)
+                ->where('demoCode', null));
+    }
+
     public function test_a_new_patient_can_complete_the_intake_workflow(): void
     {
         $this->startVerifiedIntake('024 123 4567')

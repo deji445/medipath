@@ -52,6 +52,7 @@ class ConsultantRequestController extends Controller
             'concern' => $concern !== '' ? $concern : null,
         ]);
         $request->session()->put(self::PENDING_VERIFICATION, $issued['challenge']);
+        $request->session()->forget(self::DEMO_CODE);
 
         if (is_string($issued['demo_code'])) {
             $request->session()->put(self::DEMO_CODE, $issued['demo_code']);
@@ -147,6 +148,7 @@ class ConsultantRequestController extends Controller
 
         $issued = $verification->issue($challenge['phone']);
         $request->session()->put(self::PENDING_VERIFICATION, $issued['challenge']);
+        $request->session()->forget(self::DEMO_CODE);
 
         if (is_string($issued['demo_code'])) {
             $request->session()->put(self::DEMO_CODE, $issued['demo_code']);

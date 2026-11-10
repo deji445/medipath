@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Form, Head, Link } from "@inertiajs/vue3";
-import { Bot, Check, MessageCircle, ShieldCheck, UserRound } from "@lucide/vue";
-import InputError from "@/components/InputError.vue";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { Form, Head, Link } from '@inertiajs/vue3';
+import { Bot, Check, MessageCircle, ShieldCheck, UserRound } from '@lucide/vue';
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 type Option = { value: string; label: string };
 type Question = {
@@ -38,7 +38,9 @@ defineProps<{
 
 <template>
     <Head title="Symptom assessment" />
-    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <section
+        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
         <div class="border-b border-slate-200 px-6 py-5 sm:px-8">
             <div class="flex items-center justify-between gap-4 text-sm">
                 <span class="font-medium text-teal-800">
@@ -81,16 +83,25 @@ defineProps<{
                             Tell MediPath what you are experiencing
                         </h1>
                         <p class="mt-3 max-w-2xl leading-7 text-slate-600">
-                            The next question is chosen from what you have shared. The conversation
-                            ends as soon as there is enough information to give safe guidance.
+                            The next question is chosen from what you have
+                            shared. The conversation ends as soon as there is
+                            enough information to give safe guidance.
                         </p>
                     </div>
                 </div>
 
-                <div v-if="mainConcern" class="mt-6 flex gap-3 border-y border-slate-200 py-4">
-                    <ShieldCheck class="mt-0.5 size-5 shrink-0 text-teal-700" aria-hidden="true" />
+                <div
+                    v-if="mainConcern"
+                    class="mt-6 flex gap-3 border-y border-slate-200 py-4"
+                >
+                    <ShieldCheck
+                        class="mt-0.5 size-5 shrink-0 text-teal-700"
+                        aria-hidden="true"
+                    />
                     <div>
-                        <p class="text-xs font-medium text-slate-500">Concern being assessed</p>
+                        <p class="text-xs font-medium text-slate-500">
+                            Concern being assessed
+                        </p>
                         <p class="mt-1 text-sm text-slate-800">
                             {{ mainConcern }}
                         </p>
@@ -104,12 +115,18 @@ defineProps<{
                 >
                     <div class="flex items-center gap-2 text-teal-950">
                         <Check class="size-4" aria-hidden="true" />
-                        <h2 id="captured-consultation-title" class="text-sm font-semibold">
+                        <h2
+                            id="captured-consultation-title"
+                            class="text-sm font-semibold"
+                        >
                             Already captured from your consultation
                         </h2>
                     </div>
                     <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                        <div v-for="fact in consultationFacts" :key="fact.topic">
+                        <div
+                            v-for="fact in consultationFacts"
+                            :key="fact.topic"
+                        >
                             <dt class="text-xs text-teal-800">
                                 {{ fact.label }}
                             </dt>
@@ -120,12 +137,15 @@ defineProps<{
                     </dl>
                 </section>
 
-                <details v-if="transcript?.length" class="mt-6 border-b border-slate-200 pb-5">
+                <details
+                    v-if="transcript?.length"
+                    class="mt-6 border-b border-slate-200 pb-5"
+                >
                     <summary
                         class="cursor-pointer text-sm font-medium text-teal-800 underline-offset-4 hover:underline"
                     >
                         Review {{ transcript.length }} saved
-                        {{ transcript.length === 1 ? "answer" : "answers" }}
+                        {{ transcript.length === 1 ? 'answer' : 'answers' }}
                     </summary>
                     <ol class="mt-5 space-y-5">
                         <li
@@ -133,13 +153,21 @@ defineProps<{
                             :key="index"
                             class="grid gap-3 sm:grid-cols-[2rem_1fr]"
                         >
-                            <Bot class="mt-0.5 size-5 text-teal-700" aria-hidden="true" />
+                            <Bot
+                                class="mt-0.5 size-5 text-teal-700"
+                                aria-hidden="true"
+                            />
                             <div>
                                 <p class="text-sm font-medium text-slate-900">
                                     {{ turn.question }}
                                 </p>
-                                <div class="mt-2 flex gap-2 text-sm text-slate-600">
-                                    <UserRound class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                                <div
+                                    class="mt-2 flex gap-2 text-sm text-slate-600"
+                                >
+                                    <UserRound
+                                        class="mt-0.5 size-4 shrink-0"
+                                        aria-hidden="true"
+                                    />
                                     <p>{{ turn.answer }}</p>
                                 </div>
                             </div>
@@ -153,7 +181,11 @@ defineProps<{
                     class="mt-7"
                     v-slot="{ errors, processing }"
                 >
-                    <input type="hidden" name="question_key" :value="question.key" />
+                    <input
+                        type="hidden"
+                        name="question_key"
+                        :value="question.key"
+                    />
                     <label
                         for="assessment_answer"
                         class="block text-xl leading-8 font-semibold text-slate-950"
@@ -187,7 +219,7 @@ defineProps<{
                             :disabled="processing"
                         >
                             <Spinner v-if="processing" />
-                            {{ processing ? "Checking" : "Continue" }}
+                            {{ processing ? 'Checking' : 'Continue' }}
                         </Button>
                     </div>
                 </Form>
@@ -201,10 +233,18 @@ defineProps<{
                     {{ group.description }}
                 </p>
 
-                <div v-if="mainConcern" class="mt-6 flex gap-3 border-y border-slate-200 py-4">
-                    <ShieldCheck class="mt-0.5 size-5 shrink-0 text-teal-700" aria-hidden="true" />
+                <div
+                    v-if="mainConcern"
+                    class="mt-6 flex gap-3 border-y border-slate-200 py-4"
+                >
+                    <ShieldCheck
+                        class="mt-0.5 size-5 shrink-0 text-teal-700"
+                        aria-hidden="true"
+                    />
                     <div>
-                        <p class="text-xs font-medium text-slate-500">Concern being assessed</p>
+                        <p class="text-xs font-medium text-slate-500">
+                            Concern being assessed
+                        </p>
                         <p class="mt-1 text-sm text-slate-800">
                             {{ mainConcern }}
                         </p>
@@ -224,7 +264,9 @@ defineProps<{
                             :key="item.key"
                             class="py-7 first:pt-0"
                         >
-                            <legend class="text-lg font-semibold text-slate-950">
+                            <legend
+                                class="text-lg font-semibold text-slate-950"
+                            >
                                 {{ item.question }}
                             </legend>
                             <p class="mt-2 text-sm leading-6 text-slate-600">
@@ -256,16 +298,22 @@ defineProps<{
                                         type="radio"
                                         :name="`answers[${item.key}]`"
                                         :value="option.value"
-                                        :checked="answers?.[item.key] === option.value"
+                                        :checked="
+                                            answers?.[item.key] === option.value
+                                        "
                                         required
                                         class="mt-0.5 size-5 shrink-0 accent-teal-700"
                                     />
-                                    <span class="text-sm leading-6 font-medium text-slate-800">{{
-                                        option.label
-                                    }}</span>
+                                    <span
+                                        class="text-sm leading-6 font-medium text-slate-800"
+                                        >{{ option.label }}</span
+                                    >
                                 </label>
                             </div>
-                            <InputError class="mt-3" :message="errors[`answers.${item.key}`]" />
+                            <InputError
+                                class="mt-3"
+                                :message="errors[`answers.${item.key}`]"
+                            />
                         </fieldset>
                     </div>
 
@@ -289,9 +337,13 @@ defineProps<{
                             Continue
                         </Button>
                     </div>
-                    <p class="mt-5 flex items-center gap-2 text-xs text-slate-500">
-                        <Check class="size-4 text-teal-700" aria-hidden="true" />Your answers are
-                        saved when you continue.
+                    <p
+                        class="mt-5 flex items-center gap-2 text-xs text-slate-500"
+                    >
+                        <Check
+                            class="size-4 text-teal-700"
+                            aria-hidden="true"
+                        />Your answers are saved when you continue.
                     </p>
                 </Form>
             </template>
