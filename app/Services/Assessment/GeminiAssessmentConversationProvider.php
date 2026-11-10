@@ -105,7 +105,23 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
             : 'Return a completed result as soon as the supplied information is sufficient. Otherwise return one next question.';
         $lastError = new AssessmentUnavailableException('GEMINI_UNAVAILABLE');
 
-        for ($attempt = 1; $attempt <= 2; $attempt++) {
+        // Laravel Cloud requests must finish before the edge gateway closes
+        // them. Keep the provider call bounded so the controller can save a
+        // conservative fallback instead of returning a 504 page.
+        $maxAttempts = max(
+            1,
+            min((int) config('medipath.assessment.gemini.assessment_max_attempts', 1), 2),
+        );
+        $connectTimeout = max(
+            1,
+            min((int) config('medipath.assessment.gemini.connect_timeout', 3), 3),
+        );
+        $timeout = max(
+            3,
+            min((int) config('medipath.assessment.gemini.timeout', 8), 8),
+        );
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $attemptCount = $attempt;
 
             try {
@@ -115,8 +131,8 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
                         'x-goog-api-key' => $apiKey,
                         'X-Request-Id' => $idempotencyKey,
                     ])
-                    ->connectTimeout((int) config('medipath.assessment.gemini.connect_timeout', 5))
-                    ->timeout((int) config('medipath.assessment.gemini.timeout', 20))
+                    ->connectTimeout($connectTimeout)
+                    ->timeout($timeout)
                     ->post((string) config('medipath.assessment.gemini.endpoint'), [
                         'model' => $this->model(),
                         'system_instruction' => $this->systemInstruction(),
@@ -124,7 +140,7 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
                         'store' => false,
                         'generation_config' => [
                             'max_output_tokens' => 1200,
-                            'thinking_level' => 'low',
+                            'thinking_level' => 'minimal',
                         ],
                         'response_format' => [
                             'type' => 'text',
@@ -135,7 +151,7 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
             } catch (ConnectionException $exception) {
                 $lastError = new AssessmentUnavailableException('GEMINI_CONNECTION_FAILED', $exception);
 
-                if ($attempt === 1) {
+                if ($attempt < $maxAttempts) {
                     $this->pauseBeforeRetry();
 
                     continue;
@@ -149,7 +165,7 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
             if (! $response->successful()) {
                 $lastError = new AssessmentUnavailableException('GEMINI_HTTP_'.$response->status());
 
-                if ($attempt === 1 && ($response->status() === 408 || $response->status() === 429 || $response->serverError())) {
+                if ($attempt < $maxAttempts && ($response->status() === 408 || $response->status() === 429 || $response->serverError())) {
                     $this->pauseBeforeRetry();
 
                     continue;
@@ -166,7 +182,7 @@ final class GeminiAssessmentConversationProvider implements AssessmentConversati
             } catch (AssessmentUnavailableException $exception) {
                 $lastError = $exception;
 
-                if ($attempt === 1) {
+                if ($attempt < $maxAttempts) {
                     $this->pauseBeforeRetry();
 
                     continue;

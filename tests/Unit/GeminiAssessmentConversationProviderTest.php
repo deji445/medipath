@@ -7,6 +7,7 @@ use App\Models\Visit;
 use App\Services\Ai\AiCircuitBreaker;
 use App\Services\Ai\AiRequestRecorder;
 use App\Services\Assessment\AssessmentInputBuilder;
+use App\Services\Assessment\AssessmentUnavailableException;
 use App\Services\Assessment\GeminiAssessmentConversationProvider;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Schema\Blueprint;
@@ -93,6 +94,47 @@ class GeminiAssessmentConversationProviderTest extends TestCase
 
             return $request->hasHeader('X-Request-Id', 'conversation-request-1');
         });
+    }
+
+    public function test_it_fails_fast_after_one_attempt_for_a_host_safe_fallback(): void
+    {
+        config()->set([
+            'medipath.assessment.gemini.api_key' => 'test-key',
+            'medipath.assessment.gemini.model' => 'gemini-test',
+            'medipath.assessment.gemini.endpoint' => 'https://generativelanguage.googleapis.com/v1/interactions',
+            'medipath.assessment.gemini.retry_delay_ms' => 0,
+            'medipath.assessment.gemini.assessment_max_attempts' => 1,
+        ]);
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'error' => ['message' => 'Temporarily unavailable'],
+            ], 503),
+        ]);
+
+        try {
+            (new GeminiAssessmentConversationProvider(
+                new AssessmentInputBuilder,
+                new AiRequestRecorder,
+                new AiCircuitBreaker,
+            ))->nextTurn(
+                $this->visit(),
+                ['ai_1' => 'It started yesterday and is getting worse.'],
+                ['ai_1' => 'When did it start and how has it changed?'],
+                'conversation-request-fallback',
+            );
+            $this->fail('Expected the assessment request to fail safely.');
+        } catch (AssessmentUnavailableException $exception) {
+            $this->assertSame('GEMINI_HTTP_503', $exception->errorCode);
+        }
+
+        Http::assertSentCount(1);
+        $this->assertDatabaseHas('ai_request_events', [
+            'feature' => 'assessment_conversation',
+            'outcome' => 'FAILED',
+            'attempt_count' => 1,
+            'retry_count' => 0,
+            'error_code' => 'GEMINI_HTTP_503',
+        ]);
     }
 
     private function visit(): Visit

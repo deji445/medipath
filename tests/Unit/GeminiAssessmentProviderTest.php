@@ -29,6 +29,7 @@ class GeminiAssessmentProviderTest extends TestCase
             'medipath.assessment.gemini.model' => 'gemini-3.8-flash',
             'medipath.assessment.gemini.endpoint' => 'https://generativelanguage.googleapis.com/v1/interactions',
             'medipath.assessment.gemini.retry_delay_ms' => 0,
+            'medipath.assessment.gemini.assessment_max_attempts' => 2,
         ]);
 
         Schema::create('ai_request_events', function (Blueprint $table): void {

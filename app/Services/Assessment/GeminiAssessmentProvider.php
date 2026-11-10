@@ -83,7 +83,20 @@ final class GeminiAssessmentProvider implements AssessmentProvider
         $payload = $this->requestPayload($this->inputBuilder->build($visit, $answers));
         $lastError = new AssessmentUnavailableException('GEMINI_UNAVAILABLE');
 
-        for ($attempt = 1; $attempt <= 2; $attempt++) {
+        $maxAttempts = max(
+            1,
+            min((int) config('medipath.assessment.gemini.assessment_max_attempts', 1), 2),
+        );
+        $connectTimeout = max(
+            1,
+            min((int) config('medipath.assessment.gemini.connect_timeout', 3), 3),
+        );
+        $timeout = max(
+            3,
+            min((int) config('medipath.assessment.gemini.timeout', 8), 8),
+        );
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $attemptCount = $attempt;
 
             try {
@@ -93,13 +106,13 @@ final class GeminiAssessmentProvider implements AssessmentProvider
                         'x-goog-api-key' => $apiKey,
                         'X-Request-Id' => $idempotencyKey,
                     ])
-                    ->connectTimeout((int) config('medipath.assessment.gemini.connect_timeout', 5))
-                    ->timeout((int) config('medipath.assessment.gemini.timeout', 20))
+                    ->connectTimeout($connectTimeout)
+                    ->timeout($timeout)
                     ->post((string) config('medipath.assessment.gemini.endpoint'), $payload);
             } catch (ConnectionException $exception) {
                 $lastError = new AssessmentUnavailableException('GEMINI_CONNECTION_FAILED', $exception);
 
-                if ($attempt === 1) {
+                if ($attempt < $maxAttempts) {
                     $this->pauseBeforeRetry();
 
                     continue;
@@ -111,7 +124,7 @@ final class GeminiAssessmentProvider implements AssessmentProvider
             if (! $response->successful()) {
                 $lastError = new AssessmentUnavailableException('GEMINI_HTTP_'.$response->status());
 
-                if ($attempt === 1 && $this->isRetryable($response)) {
+                if ($attempt < $maxAttempts && $this->isRetryable($response)) {
                     $this->pauseBeforeRetry();
 
                     continue;
@@ -128,7 +141,7 @@ final class GeminiAssessmentProvider implements AssessmentProvider
             } catch (AssessmentUnavailableException $exception) {
                 $lastError = $exception;
 
-                if ($attempt === 1) {
+                if ($attempt < $maxAttempts) {
                     $this->pauseBeforeRetry();
 
                     continue;
@@ -163,7 +176,7 @@ final class GeminiAssessmentProvider implements AssessmentProvider
             'store' => false,
             'generation_config' => [
                 'max_output_tokens' => 1200,
-                'thinking_level' => 'low',
+                'thinking_level' => 'minimal',
             ],
             'response_format' => [
                 'type' => 'text',
