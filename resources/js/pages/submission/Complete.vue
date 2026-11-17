@@ -192,22 +192,35 @@ function dateTime(value?: string | null): string {
                         </p>
                     </div>
                 </div>
-                <Button as-child class="mt-5">
+            </section>
+
+            <nav
+                aria-label="Next actions"
+                class="mt-7 flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:flex-wrap"
+            >
+                <Button as-child size="lg" class="w-full sm:w-auto">
                     <Link href="/intake/submission/ambulance-demo">
                         Open tracking demo
                         <ArrowRight class="size-4" aria-hidden="true" />
                     </Link>
                 </Button>
-            </section>
-
-            <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Button as-child variant="outline">
-                    <Link href="/">Return to MediPath home</Link>
-                </Button>
-                <Button as-child variant="ghost">
+                <Button
+                    as-child
+                    variant="outline"
+                    size="lg"
+                    class="w-full sm:w-auto"
+                >
                     <Link href="/intake">Start another intake</Link>
                 </Button>
-            </div>
+                <Button
+                    as-child
+                    variant="outline"
+                    size="lg"
+                    class="w-full sm:w-auto"
+                >
+                    <Link href="/">Return to MediPath home</Link>
+                </Button>
+            </nav>
         </div>
     </section>
 </template>
