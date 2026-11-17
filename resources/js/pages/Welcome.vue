@@ -9,9 +9,7 @@ import {
     ArrowRight,
     Bot,
     CheckCircle2,
-    ClipboardCheck,
     Headphones,
-    Hospital,
     MessageCircle,
     MapPin,
     Mic,
@@ -21,9 +19,7 @@ import {
     RotateCcw,
     RotateCw,
     Send,
-    ShieldCheck,
     Siren,
-    Stethoscope,
     Volume2,
     VolumeX,
 } from '@lucide/vue';
@@ -188,21 +184,6 @@ const activeConsultTab = ref<'ai' | 'human'>(
 const continuingFromChat =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('start') === 'intake';
-
-const journey = [
-    {
-        title: 'Tell us what is happening',
-        icon: ClipboardCheck,
-    },
-    {
-        title: 'Understand the urgency',
-        icon: Stethoscope,
-    },
-    {
-        title: 'Choose a capable hospital',
-        icon: Hospital,
-    },
-];
 
 function prefersReducedMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -654,27 +635,6 @@ onMounted(() => {
                         ease: 'power2.inOut',
                     },
                     0.08,
-                )
-                .from(
-                    '[data-motion="care-line"]',
-                    {
-                        scaleY: 0,
-                        transformOrigin: 'top center',
-                        duration: 0.48,
-                        clearProps: 'all',
-                    },
-                    '-=0.32',
-                )
-                .from(
-                    '[data-motion="care-step"]',
-                    {
-                        x: 10,
-                        autoAlpha: 0,
-                        duration: 0.32,
-                        stagger: 0.07,
-                        clearProps: 'all',
-                    },
-                    '-=0.38',
                 );
 
             const ambientRibbon = gsap.timeline({
@@ -878,7 +838,7 @@ onBeforeUnmount(() => {
             class="relative z-30 border-b border-[#d2e2dc] bg-[#f8fbf9]/95 backdrop-blur-sm"
         >
             <nav
-                class="mx-auto flex max-w-7xl items-center gap-4 px-5 py-4 sm:px-8"
+                class="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-4 sm:px-8"
                 aria-label="Primary navigation"
             >
                 <Link
@@ -982,116 +942,108 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div
-                    class="mx-auto grid min-h-[calc(100svh-73px)] max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.18fr_0.82fr] lg:gap-20 lg:py-24"
+                    class="mx-auto grid max-w-6xl items-center gap-6 px-4 py-8 sm:px-8 sm:py-12 lg:grid-cols-[1fr_1fr] lg:gap-14 lg:py-20"
                 >
                     <section class="relative z-10 flex flex-col justify-center">
                         <h1
                             data-motion="hero-title"
-                            class="max-w-3xl text-5xl leading-[0.98] font-semibold tracking-[-0.035em] text-balance text-[#173a33] sm:text-6xl lg:text-[4.5rem]"
+                            class="max-w-md text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance text-[#173a33] sm:text-5xl lg:text-6xl"
                         >
                             From symptoms to the right next step.
                         </h1>
                         <p
                             data-motion="hero-support"
-                            class="mt-7 max-w-xl text-lg leading-8 text-[#45635b] sm:text-xl"
+                            class="mt-4 max-w-md text-base leading-7 text-[#45635b] sm:text-lg"
                         >
                             Share what is happening. Get clear urgency guidance
                             and a hospital-ready summary.
                         </p>
-
-                        <section
-                            id="patient-start"
-                            data-motion="hero-support"
-                            class="mt-9 max-w-2xl scroll-mt-28 rounded-2xl border border-[#b9d1c8] bg-white/92 p-5 shadow-[0_18px_48px_-32px_rgba(23,58,51,0.5)] sm:p-6"
-                            aria-labelledby="patient-start-title"
+                    </section>
+                    <section
+                        id="patient-start"
+                        data-motion="hero-support"
+                        class="min-w-0 scroll-mt-6 rounded-2xl border border-[#b9d1c8] bg-white p-5 sm:p-7"
+                        aria-labelledby="patient-start-title"
+                    >
+                        <h2
+                            id="patient-start-title"
+                            class="text-xl font-semibold tracking-[-0.02em] text-[#173a33] sm:text-2xl"
                         >
-                            <h2
-                                id="patient-start-title"
-                                class="text-xl font-semibold tracking-[-0.02em] text-[#173a33] sm:text-2xl"
+                            Start your intake
+                        </h2>
+                        <p
+                            class="mt-2 max-w-xl text-sm leading-6 text-[#516c64]"
+                        >
+                            Use your Ghanaian mobile number to find or create a
+                            profile.
+                        </p>
+                        <p
+                            v-if="continuingFromChat"
+                            role="status"
+                            class="mt-4 flex items-start gap-2 rounded-lg border border-[#b9d1c8] bg-[#edf6f2] px-3 py-2.5 text-sm font-medium text-[#244a41]"
+                        >
+                            <CheckCircle2
+                                class="mt-0.5 size-4 shrink-0 text-[#197f6d]"
+                                aria-hidden="true"
+                            />
+                            Concern saved. Verify the patient to continue.
+                        </p>
+                        <Form
+                            action="/intake/lookup"
+                            method="post"
+                            class="mt-5"
+                            v-slot="{ errors, processing }"
+                            @start="beginPatientLookup"
+                            @finish="finishPatientLookup"
+                        >
+                            <input type="hidden" name="streamlined" value="1" />
+                            <div
+                                class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
                             >
-                                Find or create the patient profile
-                            </h2>
-                            <p
-                                class="mt-2 max-w-xl text-sm leading-6 text-[#516c64]"
-                            >
-                                Enter a Ghanaian mobile number. We will use it
-                                only to find the patient’s demo profile.
-                            </p>
-                            <p
-                                v-if="continuingFromChat"
-                                role="status"
-                                class="mt-4 flex items-start gap-2 rounded-lg border border-[#b9d1c8] bg-[#edf6f2] px-3 py-2.5 text-sm font-medium text-[#244a41]"
-                            >
-                                <CheckCircle2
-                                    class="mt-0.5 size-4 shrink-0 text-[#197f6d]"
-                                    aria-hidden="true"
-                                />
-                                Concern saved. Verify the patient to continue.
-                            </p>
-                            <Form
-                                action="/intake/lookup"
-                                method="post"
-                                class="mt-5"
-                                v-slot="{ errors, processing }"
-                                @start="beginPatientLookup"
-                                @finish="finishPatientLookup"
-                            >
-                                <input
-                                    type="hidden"
-                                    name="streamlined"
-                                    value="1"
-                                />
-                                <div
-                                    class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
-                                >
-                                    <div class="grid gap-2">
-                                        <Label for="home_phone_number"
-                                            >Mobile number</Label
-                                        >
-                                        <Input
-                                            id="home_phone_number"
-                                            name="phone_number"
-                                            type="tel"
-                                            required
-                                            autocomplete="tel"
-                                            inputmode="tel"
-                                            placeholder="024 123 4567"
-                                            class="h-12 border-[#b9d1c8] bg-white text-base md:text-base"
-                                            :aria-invalid="
-                                                Boolean(errors.phone_number)
-                                            "
-                                        />
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        class="h-12 w-full bg-[#197f6d] px-6 text-base text-white hover:bg-[#116655] sm:w-auto"
-                                        :disabled="processing"
+                                <div class="grid gap-2">
+                                    <Label for="home_phone_number"
+                                        >Mobile number</Label
                                     >
-                                        <Spinner v-if="processing" />
-                                        Continue
-                                        <ArrowRight
-                                            v-if="!processing"
-                                            class="size-4"
-                                            aria-hidden="true"
-                                        />
-                                    </Button>
+                                    <Input
+                                        id="home_phone_number"
+                                        name="phone_number"
+                                        type="tel"
+                                        required
+                                        autocomplete="tel"
+                                        inputmode="tel"
+                                        placeholder="024 123 4567"
+                                        class="h-12 border-[#b9d1c8] bg-white text-base md:text-base"
+                                        :aria-invalid="
+                                            Boolean(errors.phone_number)
+                                        "
+                                    />
                                 </div>
-                                <InputError
-                                    class="mt-2"
-                                    :message="errors.phone_number"
-                                />
-                                <p
-                                    class="mt-3 text-xs leading-5 text-[#60766f]"
+                                <Button
+                                    type="submit"
+                                    class="h-12 w-full bg-[#197f6d] px-6 text-base text-white hover:bg-[#116655] sm:w-auto"
+                                    :disabled="processing"
                                 >
-                                    Demo environment. Use dummy patient
-                                    information only.
-                                </p>
-                            </Form>
-                        </section>
+                                    <Spinner v-if="processing" />
+                                    Continue
+                                    <ArrowRight
+                                        v-if="!processing"
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </div>
+                            <InputError
+                                class="mt-2"
+                                :message="errors.phone_number"
+                            />
+                            <p class="mt-3 text-xs leading-5 text-[#60766f]">
+                                Demo environment. Use dummy patient information
+                                only.
+                            </p>
+                        </Form>
 
                         <div
-                            data-motion="hero-support"
-                            class="mt-5 flex items-center"
+                            class="mt-4 flex items-center border-t border-[#d2e2dc] pt-3"
                         >
                             <a
                                 href="#consult"
@@ -1104,89 +1056,17 @@ onBeforeUnmount(() => {
                                 />
                             </a>
                         </div>
-
-                        <div
-                            data-motion="hero-support"
-                            class="mt-10 flex max-w-xl items-center gap-3 text-sm leading-6 text-[#516c64]"
-                        >
-                            <ShieldCheck
-                                class="size-5 shrink-0 text-[#197f6d]"
-                                aria-hidden="true"
-                            />
-                            <p>
-                                Nothing is sent to a hospital without your
-                                consent.
-                            </p>
-                        </div>
-                    </section>
-
-                    <section
-                        class="relative z-10 py-4 lg:pl-8"
-                        aria-labelledby="journey-title"
-                    >
-                        <div class="border-b border-[#b9d1c8] pb-6">
-                            <h2
-                                id="journey-title"
-                                class="max-w-sm text-2xl leading-tight font-semibold tracking-[-0.025em] text-[#173a33] sm:text-3xl"
-                            >
-                                One guided care journey.
-                            </h2>
-                        </div>
-
-                        <ol class="relative py-7">
-                            <span
-                                data-motion="care-line"
-                                class="absolute top-12 bottom-12 left-6 w-px bg-[#9fc3b7]"
-                                aria-hidden="true"
-                            />
-                            <li
-                                v-for="(step, index) in journey"
-                                :key="step.title"
-                                data-motion="care-step"
-                                class="relative grid grid-cols-[48px_1fr] items-center gap-5 pb-8 last:pb-0"
-                            >
-                                <div
-                                    class="z-10 flex size-12 items-center justify-center rounded-xl bg-[#f8fbf9] text-[#197f6d] ring-1 ring-[#b9d1c8]"
-                                >
-                                    <component
-                                        :is="step.icon"
-                                        class="size-5"
-                                        aria-hidden="true"
-                                    />
-                                </div>
-                                <div>
-                                    <div class="flex items-baseline gap-3">
-                                        <span
-                                            class="text-xs font-semibold text-[#197f6d] tabular-nums"
-                                            >0{{ index + 1 }}</span
-                                        >
-                                        <h3
-                                            class="font-semibold text-[#173a33]"
-                                        >
-                                            {{ step.title }}
-                                        </h3>
-                                    </div>
-                                </div>
-                            </li>
-                        </ol>
-                        <p
-                            class="border-t border-[#b9d1c8] pt-5 text-sm text-[#516c64]"
-                        >
-                            Guidance, not a diagnosis.
-                        </p>
                     </section>
                 </div>
             </div>
 
             <section
                 id="consult"
-                class="scroll-mt-6 border-y border-[#1b5b4e] bg-[#173a33] py-12 text-white sm:py-16"
+                class="scroll-mt-4 border-t border-[#d2e2dc] bg-white py-8 sm:py-12"
                 aria-labelledby="consult-title"
             >
-                <div class="mx-auto max-w-7xl px-5 sm:px-8">
-                    <div
-                        class="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16"
-                    >
+                <div class="mx-auto max-w-3xl px-4 sm:px-8">
+                    <div class="grid gap-5">
                         <div>
                             <h2
                                 id="consult-title"
@@ -1194,21 +1074,20 @@ onBeforeUnmount(() => {
                             >
                                 Start with a conversation.
                             </h2>
-                            <p class="mt-4 max-w-sm leading-7 text-[#c9e2d9]">
+                            <p class="mt-2 text-sm leading-6 text-[#45635b]">
                                 Ask a low-risk health question or request a
                                 callback. For emergencies, call 112.
                             </p>
                             <Link
                                 href="/emergency"
-                                class="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-[#c53f52] px-4 font-semibold text-white shadow-[0_10px_24px_-15px_rgba(197,63,82,0.9)] transition-colors outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-white/45"
+                                class="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#973449] underline underline-offset-4"
+                                ><Siren class="size-4" aria-hidden="true" />Open
+                                emergency help</Link
                             >
-                                <Siren class="size-4" aria-hidden="true" />
-                                Open emergency help
-                            </Link>
                         </div>
 
                         <div
-                            class="overflow-hidden rounded-2xl bg-white text-[#16352f] shadow-[0_24px_64px_-36px_rgba(0,0,0,0.8)]"
+                            class="overflow-hidden rounded-2xl border border-[#c6d8d1] bg-white text-[#16352f]"
                         >
                             <div
                                 class="grid grid-cols-2 border-b border-[#d2e2dc] bg-[#edf4f1] p-1.5"
@@ -1260,7 +1139,7 @@ onBeforeUnmount(() => {
                             >
                                 <div
                                     ref="chatHistory"
-                                    class="max-h-80 min-h-52 space-y-4 overflow-y-auto rounded-xl bg-[#f1f5fa] p-4"
+                                    class="max-h-80 space-y-4 overflow-y-auto rounded-xl bg-[#f4f8f6] p-4"
                                     aria-live="polite"
                                 >
                                     <div
@@ -1963,17 +1842,19 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
             </section>
-
-            <section class="border-y border-[#d2e2dc] bg-[#f8fbf9]">
-                <div
-                    class="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-sm font-semibold text-[#365a51] sm:px-8 md:flex-row md:items-center md:justify-between md:gap-8"
-                >
-                    <p>Built for Ghanaian care journeys</p>
-                    <p>Emergency checks before AI</p>
-                    <p>Consent before hospital sharing</p>
-                </div>
-            </section>
         </main>
+        <footer class="border-t border-[#d2e2dc] bg-[#f8fbf9]">
+            <div
+                class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 text-sm text-[#45635b] sm:px-8"
+            >
+                <p>Guidance, not a diagnosis.</p>
+                <Link
+                    :href="staffWorkspaceHref"
+                    class="inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
+                    >{{ staffWorkspaceLabel }}</Link
+                >
+            </div>
+        </footer>
     </div>
 </template>
 

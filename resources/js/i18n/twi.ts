@@ -95,6 +95,9 @@ export const twiTranslations: Record<string, string> = {
     'Share what is happening. Get clear urgency guidance and a hospital-ready summary.':
         'Ka nea ɛrekɔ so no. Nya akwankyerɛ a emu da hɔ ne nsɛm tiawa a wobetumi de akɔ ayaresabea.',
     'Start intake': 'Fi nsɛm a wobegye no ase',
+    'Start your intake': 'Fi wo nsɛm a wobɛkyerɛw no ase',
+    'Use your Ghanaian mobile number to find or create a profile.':
+        'Fa wo Ghana telefon nɔma hwehwɛ wo ho nsɛm anaa kyerɛw wo din.',
     'Ask the AI consultant': 'Bisa AI ɔhwɛfo no',
     'Nothing is sent to a hospital without your consent.':
         'Yɛremfa biribiara nkɔ ayaresabea gye sɛ woapene so.',
