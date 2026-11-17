@@ -41,111 +41,63 @@ defineProps<{
     hospitals: Hospital[];
     selectedHospital?: { id: string; name: string } | null;
 }>();
-
-const reasonLabels: Record<string, string> = {
-    NO_RED_FLAG_IDENTIFIED: 'No emergency warning sign was identified',
-    SYMPTOMS_WORSENING: 'The concern is getting worse',
-    SEVERE_REPORTED_INTENSITY: 'The reported intensity is severe',
-    DAILY_ACTIVITY_LIMITED: 'Normal activities are limited',
-    DAILY_ACTIVITY_PREVENTED: 'Normal activities cannot be managed',
-    ASSOCIATED_SYMPTOMS_REPORTED: 'Additional symptoms were reported',
-    PERSISTENT_SYMPTOMS: 'The concern has persisted for several days',
-    ABNORMAL_VITAL_SIGNS_REPORTED:
-        'One or more recorded vital signs are outside the usual adult range',
-};
 </script>
 
 <template>
     <Head title="Guidance and hospital" />
 
-    <section
-        class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
-    >
-        <div
-            :class="[
-                'rounded-xl border p-5',
-                severity === 'MEDIUM'
-                    ? 'border-amber-200 bg-amber-50 text-amber-950'
-                    : 'border-teal-200 bg-teal-50 text-teal-950',
-            ]"
-        >
-            <div class="flex items-start gap-4">
-                <div
-                    :class="[
-                        'flex size-11 shrink-0 items-center justify-center rounded-xl',
-                        severity === 'MEDIUM'
-                            ? 'bg-amber-100 text-amber-900'
-                            : 'bg-teal-100 text-teal-900',
-                    ]"
-                >
-                    <CircleAlert class="size-5" aria-hidden="true" />
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold text-balance">
-                        {{
-                            severity === 'MEDIUM'
-                                ? 'Seek professional care soon'
-                                : 'Routine care may be appropriate'
-                        }}
-                    </h1>
-                    <p class="mt-2 max-w-2xl text-sm leading-6">
-                        {{ guidance.summary }}
-                    </p>
-                </div>
-            </div>
-            <ul
-                v-if="guidance.reasonCodes.length"
-                class="mt-4 grid gap-2 border-t border-current/15 pt-4 text-sm sm:grid-cols-2"
-            >
-                <li
-                    v-for="code in guidance.reasonCodes"
-                    :key="code"
-                    class="flex gap-2"
-                >
-                    <Check class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                    <span>{{ reasonLabels[code] ?? code }}</span>
-                </li>
-            </ul>
-        </div>
-
-        <div class="mt-8 flex items-start gap-4 border-t border-slate-200 pt-7">
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
+        <header class="flex items-start gap-3">
             <div
-                class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800"
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800"
             >
                 <Building2 class="size-5" aria-hidden="true" />
             </div>
             <div>
                 <h1 class="text-2xl font-semibold text-balance text-slate-950">
-                    Choose where to receive care
+                    Choose a hospital
                 </h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    These are verified Ghana facility directory entries, ranked
-                    by listed clinical capability and straight-line distance
-                    when coordinates are available.
+                <p
+                    class="mt-1.5 flex max-w-2xl items-start gap-2 text-sm leading-6 text-slate-600"
+                >
+                    <LockKeyhole
+                        class="mt-1 size-4 shrink-0 text-teal-700"
+                        aria-hidden="true"
+                    />
+                    <span>
+                        Nothing is shared with a hospital without explicit
+                        consent.
+                    </span>
                 </p>
             </div>
-        </div>
+        </header>
 
         <div
-            class="mt-6 flex gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-950"
+            :class="[
+                'mt-6 flex items-start gap-3 rounded-xl border px-4 py-3',
+                severity === 'MEDIUM'
+                    ? 'border-amber-200 bg-amber-50 text-amber-950'
+                    : 'border-teal-200 bg-teal-50 text-teal-950',
+            ]"
         >
-            <LockKeyhole
-                class="mt-0.5 size-5 shrink-0 text-teal-800"
-                aria-hidden="true"
-            />
+            <CircleAlert class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
             <div>
-                <h2 class="font-semibold">Your intake remains private</h2>
-                <p class="mt-1 leading-6">
-                    Choosing a facility does not send medical information. None
-                    of the listed facilities has a live MediPath connection, so
-                    any intake you save remains a prototype record in MediPath.
+                <h2 class="font-semibold">
+                    {{
+                        severity === 'MEDIUM'
+                            ? 'Seek professional care soon'
+                            : 'Routine care may be appropriate'
+                    }}
+                </h2>
+                <p class="mt-0.5 text-sm leading-5">
+                    {{ guidance.summary }}
                 </p>
             </div>
         </div>
 
         <div
             v-if="location"
-            class="mt-6 flex items-center gap-2 text-sm text-slate-600"
+            class="mt-4 flex items-center gap-2 text-sm text-slate-600"
         >
             <MapPin class="size-4 text-teal-700" aria-hidden="true" />
             <span>Location supplied: {{ location }}</span>
@@ -153,7 +105,7 @@ const reasonLabels: Record<string, string> = {
 
         <div
             v-if="selectedHospital"
-            class="mt-6 flex gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-950"
+            class="mt-4 flex gap-3 rounded-lg bg-teal-50 px-4 py-3 text-sm text-teal-950"
         >
             <Check class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
             <p>
@@ -162,18 +114,23 @@ const reasonLabels: Record<string, string> = {
             </p>
         </div>
 
-        <div v-if="hospitals.length" class="mt-7 grid gap-4">
+        <div v-if="hospitals.length" class="mt-6 grid gap-3">
             <article
                 v-for="hospital in hospitals"
                 :key="hospital.id"
-                class="rounded-xl border border-slate-200 p-5"
+                :class="[
+                    'rounded-xl border p-4 sm:p-5',
+                    hospital.recommended
+                        ? 'border-teal-300 bg-teal-50/30'
+                        : 'border-slate-200',
+                ]"
             >
                 <div
-                    class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between"
+                    class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
                 >
                     <div class="min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
-                            <h2 class="font-semibold text-slate-950">
+                            <h2 class="text-base font-semibold text-slate-950">
                                 {{ hospital.name }}
                             </h2>
                             <span
@@ -191,11 +148,12 @@ const reasonLabels: Record<string, string> = {
                                         : 'Clinic'
                                 }}
                             </span>
-                            <span
-                                v-if="!hospital.isLivePartner"
-                                class="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600"
-                            >
-                                Directory listing
+                            <span class="text-xs font-medium text-slate-500">
+                                {{
+                                    hospital.isLivePartner
+                                        ? 'MediPath connected'
+                                        : 'Directory listing'
+                                }}
                             </span>
                         </div>
                         <p
@@ -204,54 +162,23 @@ const reasonLabels: Record<string, string> = {
                         >
                             {{ hospital.address }}
                         </p>
-                        <ul
-                            class="mt-4 grid gap-2 text-sm leading-5 text-slate-700"
+                        <p
+                            v-if="
+                                hospital.distanceKm !== null &&
+                                hospital.distanceKm !== undefined
+                            "
+                            class="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-teal-800"
                         >
-                            <li
-                                v-for="reason in hospital.reasons"
-                                :key="reason"
-                                class="flex gap-2.5"
-                            >
-                                <Check
-                                    class="mt-0.5 size-4 shrink-0 text-teal-700"
-                                    aria-hidden="true"
-                                />
-                                <span>{{ reason }}</span>
-                            </li>
-                        </ul>
-                        <div class="mt-4 text-xs leading-5 text-slate-500">
-                            <p v-if="hospital.isLivePartner">
-                                Live connection enabled. This still does not
-                                guarantee bed capacity or an appointment.
-                            </p>
-                            <p v-else>
-                                Directory details verified
-                                {{
-                                    hospital.directoryVerifiedAt ?? 'recently'
-                                }}. Live opening status, bed capacity, and
-                                intake receipt are not available.
-                            </p>
-                            <a
-                                v-if="hospital.directorySourceUrl"
-                                :href="hospital.directorySourceUrl"
-                                target="_blank"
-                                rel="noreferrer"
-                                class="mt-2 inline-flex items-center gap-1.5 font-medium text-teal-800 underline underline-offset-4 hover:text-teal-950 focus-visible:rounded-sm focus-visible:ring-3 focus-visible:ring-teal-700/25 focus-visible:outline-none"
-                            >
-                                View facility source
-                                <ExternalLink
-                                    class="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </a>
-                        </div>
+                            <MapPin class="size-4" aria-hidden="true" />
+                            {{ hospital.distanceKm.toFixed(1) }} km away
+                        </p>
                     </div>
 
                     <Form
                         action="/intake/routing"
                         method="post"
                         v-slot="{ processing, errors }"
-                        class="shrink-0"
+                        class="w-full sm:w-auto"
                     >
                         <input type="hidden" name="streamlined" value="1" />
                         <input
@@ -261,7 +188,7 @@ const reasonLabels: Record<string, string> = {
                         />
                         <label
                             v-if="hospital.requiresOverrideConfirmation"
-                            class="mb-3 flex max-w-56 items-start gap-2 text-sm leading-5 text-slate-700"
+                            class="mb-3 flex max-w-60 items-start gap-2 text-sm leading-5 text-slate-700"
                         >
                             <input
                                 type="checkbox"
@@ -296,8 +223,8 @@ const reasonLabels: Record<string, string> = {
                             <Spinner v-if="processing" />
                             {{
                                 selectedHospital?.id === hospital.id
-                                    ? 'Keep this hospital'
-                                    : 'Choose hospital'
+                                    ? 'Keep'
+                                    : 'Choose'
                             }}
                         </Button>
                         <InputError
@@ -311,6 +238,51 @@ const reasonLabels: Record<string, string> = {
                         />
                     </Form>
                 </div>
+
+                <details
+                    class="group mt-4 border-t border-slate-200 pt-3 text-sm text-slate-600"
+                >
+                    <summary
+                        class="w-fit cursor-pointer rounded-sm font-medium text-teal-800 marker:text-slate-400 hover:text-teal-950 focus-visible:ring-3 focus-visible:ring-teal-700/25 focus-visible:outline-none"
+                    >
+                        Hospital details
+                    </summary>
+                    <div class="mt-3 max-w-2xl space-y-3 text-sm leading-5">
+                        <ul v-if="hospital.reasons.length" class="grid gap-1.5">
+                            <li
+                                v-for="reason in hospital.reasons"
+                                :key="reason"
+                                class="flex gap-2"
+                            >
+                                <Check
+                                    class="mt-0.5 size-4 shrink-0 text-teal-700"
+                                    aria-hidden="true"
+                                />
+                                <span>{{ reason }}</span>
+                            </li>
+                        </ul>
+                        <p v-if="hospital.isLivePartner">
+                            Live connection enabled. This does not guarantee bed
+                            capacity or an appointment.
+                        </p>
+                        <p v-else>
+                            Directory details verified
+                            {{ hospital.directoryVerifiedAt ?? 'recently' }}.
+                            Live opening status and bed capacity are
+                            unavailable.
+                        </p>
+                        <a
+                            v-if="hospital.directorySourceUrl"
+                            :href="hospital.directorySourceUrl"
+                            target="_blank"
+                            rel="noreferrer"
+                            class="inline-flex items-center gap-1.5 font-medium text-teal-800 underline underline-offset-4 hover:text-teal-950 focus-visible:rounded-sm focus-visible:ring-3 focus-visible:ring-teal-700/25 focus-visible:outline-none"
+                        >
+                            View facility source
+                            <ExternalLink class="size-3.5" aria-hidden="true" />
+                        </a>
+                    </div>
+                </details>
             </article>
         </div>
 

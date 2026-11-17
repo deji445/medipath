@@ -311,6 +311,12 @@ export const twiPageTranslations: Record<string, string> = {
         'Yɛ ayaresabea bi na fi platform sohwɛ ase.',
 
     'Choose where to receive care': 'Paw baabi a wobɛnya ayaresa',
+    'Seek professional care soon': 'Kɔhwehwɛ oduruyɛfo mmoa ntɛm',
+    'Routine care may be appropriate': 'Ayaresa a wɔtaa de ma betumi afata',
+    'Directory listing': 'Ayaresabea din a wɔakyerɛw',
+    'MediPath connected': 'Ɛne MediPath abɔ mu',
+    Choose: 'Paw',
+    Keep: 'Kora',
     'These hospitals can receive this assessment. They are ranked by suitability, availability, and distance when location coordinates are available.':
         'Ayaresabea yi betumi agye nhwehwɛmu yi. Wɔhyehyɛ wɔn sɛnea wɔfata, wɔwɔ hɔ, ne kwan a ɛda ntam.',
     'Choosing a hospital does not send medical information. You will review the destination and give explicit sharing consent before anything is transmitted.':
