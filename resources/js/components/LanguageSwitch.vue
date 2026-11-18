@@ -44,7 +44,7 @@ watch(
 
 <template>
     <div
-        class="inline-flex shrink-0 items-center rounded-md border border-[#c6d8d1] bg-white p-0.5"
+        class="inline-flex shrink-0 items-center rounded-md border border-[#c6d8d1] bg-white p-0.5 dark:border-[#496759] dark:bg-[#192b25]"
         role="group"
         :aria-label="localization.translations.language"
         :aria-busy="changing"
@@ -56,8 +56,8 @@ watch(
             class="inline-flex h-11 min-w-11 items-center justify-center rounded-[4px] px-2.5 text-xs font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 disabled:cursor-wait disabled:opacity-70"
             :class="
                 locale.code === localization.current
-                    ? 'bg-[#dff2ec] text-[#116655]'
-                    : 'text-[#60766f] hover:bg-[#f2f7f5] hover:text-[#173a33]'
+                    ? 'bg-[#dff2ec] text-[#116655] dark:bg-[#314e40] dark:text-[#aff0d3]'
+                    : 'text-[#60766f] hover:bg-[#f2f7f5] hover:text-[#173a33] dark:text-[#bad1c5] dark:hover:bg-[#223a30] dark:hover:text-white'
             "
             :disabled="changing"
             :aria-pressed="locale.code === localization.current"

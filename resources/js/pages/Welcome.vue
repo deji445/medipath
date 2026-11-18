@@ -14,6 +14,8 @@ import {
     MapPin,
     Mic,
     MicOff,
+    Moon,
+    Sun,
     LockKeyhole,
     PhoneCall,
     RotateCcw,
@@ -24,6 +26,7 @@ import {
     VolumeX,
 } from '@lucide/vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { useAppearance } from '@/composables/useAppearance';
 import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,6 +98,7 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
+const { resolvedAppearance, updateAppearance } = useAppearance();
 const staffWorkspaceHref = computed(() => {
     const user = page.props.auth.user;
 
@@ -833,9 +837,12 @@ onBeforeUnmount(() => {
 
 <template>
     <Head title="Welcome" />
-    <div ref="pageRoot" class="min-h-screen bg-[#f4f8f6] text-[#16352f]">
+    <div
+        ref="pageRoot"
+        class="home-page min-h-screen bg-(--home-canvas) text-(--home-ink)"
+    >
         <header
-            class="relative z-30 border-b border-[#d2e2dc] bg-[#f8fbf9]/95 backdrop-blur-sm"
+            class="relative z-30 border-b border-(--home-line) bg-(--home-header) backdrop-blur-sm"
         >
             <nav
                 class="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-4 sm:px-8"
@@ -843,14 +850,35 @@ onBeforeUnmount(() => {
             >
                 <Link
                     href="/"
-                    class="flex items-center gap-3 rounded-md text-lg font-semibold text-[#173a33] outline-none focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
+                    class="flex items-center gap-3 rounded-md text-lg font-semibold text-(--home-ink) outline-none focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
                 >
-                    <AppLogoIcon class="size-10 text-[#197f6d]" />
-                    <span>MediPath</span>
+                    <AppLogoIcon class="size-10 text-(--home-accent)" />
+                    <span class="max-[374px]:sr-only">MediPath</span>
                 </Link>
 
                 <div class="ml-auto flex items-center gap-2 sm:gap-4">
                     <LanguageSwitch />
+                    <button
+                        type="button"
+                        :aria-label="isTwiLocale ? 'Sum mu kɔla' : 'Dark mode'"
+                        :title="isTwiLocale ? 'Sum mu kɔla' : 'Dark mode'"
+                        :aria-pressed="resolvedAppearance === 'dark'"
+                        class="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-(--home-line) bg-(--home-surface) text-(--home-ink) hover:bg-(--home-soft) focus-visible:outline-2 focus-visible:outline-offset-2"
+                        @click="
+                            updateAppearance(
+                                resolvedAppearance === 'dark'
+                                    ? 'light'
+                                    : 'dark',
+                            )
+                        "
+                    >
+                        <Sun
+                            v-if="resolvedAppearance === 'dark'"
+                            class="size-5"
+                            aria-hidden="true"
+                        />
+                        <Moon v-else class="size-5" aria-hidden="true" />
+                    </button>
                     <Link
                         href="/emergency"
                         class="home-emergency-alarm inline-flex size-11 items-center justify-center rounded-full bg-[#c53f52] text-white shadow-[0_8px_20px_-10px_rgba(197,63,82,0.9)] transition-colors outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-[#c53f52]/35"
@@ -862,7 +890,7 @@ onBeforeUnmount(() => {
                     </Link>
                     <Link
                         :href="staffWorkspaceHref"
-                        class="hidden rounded-md text-sm font-semibold text-[#45635b] outline-none hover:text-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 sm:inline-flex"
+                        class="hidden rounded-md text-sm font-semibold text-(--home-muted) outline-none hover:text-(--home-accent) focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 sm:inline-flex"
                     >
                         {{ staffWorkspaceLabel }}
                     </Link>
@@ -947,13 +975,13 @@ onBeforeUnmount(() => {
                     <section class="relative z-10 flex flex-col justify-center">
                         <h1
                             data-motion="hero-title"
-                            class="max-w-md text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance text-[#173a33] sm:text-5xl lg:text-6xl"
+                            class="max-w-md text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance text-(--home-ink) sm:text-5xl lg:text-6xl"
                         >
                             From symptoms to the right next step.
                         </h1>
                         <p
                             data-motion="hero-support"
-                            class="mt-4 max-w-md text-base leading-7 text-[#45635b] sm:text-lg"
+                            class="mt-4 max-w-md text-base leading-7 text-(--home-muted) sm:text-lg"
                         >
                             Share what is happening. Get clear urgency guidance
                             and a hospital-ready summary.
@@ -962,17 +990,17 @@ onBeforeUnmount(() => {
                     <section
                         id="patient-start"
                         data-motion="hero-support"
-                        class="min-w-0 scroll-mt-6 rounded-2xl border border-[#b9d1c8] bg-white p-5 sm:p-7"
+                        class="min-w-0 scroll-mt-6 rounded-2xl border border-(--home-line) bg-(--home-surface) p-5 sm:p-7"
                         aria-labelledby="patient-start-title"
                     >
                         <h2
                             id="patient-start-title"
-                            class="text-xl font-semibold tracking-[-0.02em] text-[#173a33] sm:text-2xl"
+                            class="text-xl font-semibold tracking-[-0.02em] text-(--home-ink) sm:text-2xl"
                         >
                             Start your intake
                         </h2>
                         <p
-                            class="mt-2 max-w-xl text-sm leading-6 text-[#516c64]"
+                            class="mt-2 max-w-xl text-sm leading-6 text-(--home-muted)"
                         >
                             Use your Ghanaian mobile number to find or create a
                             profile.
@@ -980,10 +1008,10 @@ onBeforeUnmount(() => {
                         <p
                             v-if="continuingFromChat"
                             role="status"
-                            class="mt-4 flex items-start gap-2 rounded-lg border border-[#b9d1c8] bg-[#edf6f2] px-3 py-2.5 text-sm font-medium text-[#244a41]"
+                            class="mt-4 flex items-start gap-2 rounded-lg border border-(--home-line) bg-(--home-soft) px-3 py-2.5 text-sm font-medium text-(--home-ink)"
                         >
                             <CheckCircle2
-                                class="mt-0.5 size-4 shrink-0 text-[#197f6d]"
+                                class="mt-0.5 size-4 shrink-0 text-(--home-accent)"
                                 aria-hidden="true"
                             />
                             Concern saved. Verify the patient to continue.
@@ -1012,7 +1040,7 @@ onBeforeUnmount(() => {
                                         autocomplete="tel"
                                         inputmode="tel"
                                         placeholder="024 123 4567"
-                                        class="h-12 border-[#b9d1c8] bg-white text-base md:text-base"
+                                        class="h-12 border-(--home-line) bg-(--home-surface) text-base md:text-base"
                                         :aria-invalid="
                                             Boolean(errors.phone_number)
                                         "
@@ -1036,18 +1064,20 @@ onBeforeUnmount(() => {
                                 class="mt-2"
                                 :message="errors.phone_number"
                             />
-                            <p class="mt-3 text-xs leading-5 text-[#60766f]">
+                            <p
+                                class="mt-3 text-xs leading-5 text-(--home-muted)"
+                            >
                                 Demo environment. Use dummy patient information
                                 only.
                             </p>
                         </Form>
 
                         <div
-                            class="mt-4 flex items-center border-t border-[#d2e2dc] pt-3"
+                            class="mt-4 flex items-center border-t border-(--home-line) pt-3"
                         >
                             <a
                                 href="#consult"
-                                class="inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-base font-semibold text-[#244a41] underline decoration-[#9abbb0] underline-offset-8 transition-colors outline-none hover:text-[#116655] hover:decoration-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
+                                class="inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-base font-semibold text-(--home-ink) underline decoration-[#9abbb0] underline-offset-8 transition-colors outline-none hover:text-(--home-accent) hover:decoration-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
                             >
                                 Ask the AI consultant
                                 <MessageCircle
@@ -1062,7 +1092,7 @@ onBeforeUnmount(() => {
 
             <section
                 id="consult"
-                class="scroll-mt-4 border-t border-[#d2e2dc] bg-white py-8 sm:py-12"
+                class="scroll-mt-4 border-t border-(--home-line) bg-(--home-surface) py-8 sm:py-12"
                 aria-labelledby="consult-title"
             >
                 <div class="mx-auto max-w-3xl px-4 sm:px-8">
@@ -1074,23 +1104,25 @@ onBeforeUnmount(() => {
                             >
                                 Start with a conversation.
                             </h2>
-                            <p class="mt-2 text-sm leading-6 text-[#45635b]">
+                            <p
+                                class="mt-2 text-sm leading-6 text-(--home-muted)"
+                            >
                                 Ask a low-risk health question or request a
                                 callback. For emergencies, call 112.
                             </p>
                             <Link
                                 href="/emergency"
-                                class="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#973449] underline underline-offset-4"
+                                class="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-(--home-alert-text) underline underline-offset-4"
                                 ><Siren class="size-4" aria-hidden="true" />Open
                                 emergency help</Link
                             >
                         </div>
 
                         <div
-                            class="overflow-hidden rounded-2xl border border-[#c6d8d1] bg-white text-[#16352f]"
+                            class="overflow-hidden rounded-2xl border border-(--home-line) bg-(--home-surface) text-(--home-ink)"
                         >
                             <div
-                                class="grid grid-cols-2 border-b border-[#d2e2dc] bg-[#edf4f1] p-1.5"
+                                class="grid grid-cols-2 border-b border-(--home-line) bg-(--home-soft) p-1.5"
                                 role="tablist"
                                 aria-label="Consultation options"
                             >
@@ -1101,8 +1133,8 @@ onBeforeUnmount(() => {
                                     class="flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
                                     :class="
                                         activeConsultTab === 'ai'
-                                            ? 'bg-white text-[#197f6d] shadow-sm'
-                                            : 'text-[#60766f] hover:text-[#16352f]'
+                                            ? 'bg-(--home-surface) text-(--home-accent) shadow-sm'
+                                            : 'text-(--home-muted) hover:text-(--home-ink)'
                                     "
                                     @click="activeConsultTab = 'ai'"
                                 >
@@ -1118,8 +1150,8 @@ onBeforeUnmount(() => {
                                     class="flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-[#197f6d]/30"
                                     :class="
                                         activeConsultTab === 'human'
-                                            ? 'bg-white text-[#197f6d] shadow-sm'
-                                            : 'text-[#60766f] hover:text-[#16352f]'
+                                            ? 'bg-(--home-surface) text-(--home-accent) shadow-sm'
+                                            : 'text-(--home-muted) hover:text-(--home-ink)'
                                     "
                                     @click="activeConsultTab = 'human'"
                                 >
@@ -1135,11 +1167,11 @@ onBeforeUnmount(() => {
                                 v-if="activeConsultTab === 'ai'"
                                 ref="consultPanel"
                                 role="tabpanel"
-                                class="p-5 sm:p-7"
+                                class="p-3 min-[375px]:p-4 sm:p-7"
                             >
                                 <div
                                     ref="chatHistory"
-                                    class="max-h-80 space-y-4 overflow-y-auto rounded-xl bg-[#f4f8f6] p-4"
+                                    class="max-h-80 space-y-4 overflow-y-auto rounded-xl bg-(--home-canvas) p-4"
                                     aria-live="polite"
                                 >
                                     <div
@@ -1147,7 +1179,7 @@ onBeforeUnmount(() => {
                                         class="flex gap-3"
                                     >
                                         <div
-                                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#dff2ec] text-[#116655]"
+                                            class="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-(--home-soft) text-(--home-accent) min-[400px]:flex"
                                         >
                                             <Bot
                                                 class="size-4"
@@ -1155,7 +1187,7 @@ onBeforeUnmount(() => {
                                             />
                                         </div>
                                         <p
-                                            class="max-w-xl rounded-xl bg-white px-4 py-3 text-sm leading-6 text-slate-700"
+                                            class="max-w-xl rounded-xl bg-(--home-surface) px-4 py-3 text-sm leading-6 text-(--home-muted)"
                                         >
                                             Hello. Tell me what is bothering
                                             you, and I’ll ask one useful
@@ -1181,7 +1213,7 @@ onBeforeUnmount(() => {
                                                 message.role === 'assistant' &&
                                                 message.emergency
                                             "
-                                            class="w-full rounded-xl bg-[#fff0f2] p-5 text-[#711d2b] ring-1 ring-[#e9a8b2] sm:p-6"
+                                            class="w-full rounded-xl bg-(--home-alert-surface) p-5 text-(--home-alert-text) ring-1 ring-[#e9a8b2] sm:p-6"
                                             role="alert"
                                         >
                                             <div class="flex items-start gap-3">
@@ -1195,7 +1227,7 @@ onBeforeUnmount(() => {
                                                 </span>
                                                 <div class="min-w-0">
                                                     <h3
-                                                        class="text-base font-semibold text-[#8a2637]"
+                                                        class="text-base font-semibold text-(--home-alert-text)"
                                                     >
                                                         Get emergency help now
                                                     </h3>
@@ -1206,7 +1238,7 @@ onBeforeUnmount(() => {
                                                     </p>
                                                     <button
                                                         type="button"
-                                                        class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-[#8a2637] outline-none hover:bg-white/70 focus-visible:ring-3 focus-visible:ring-[#c53f52]/30 disabled:cursor-not-allowed disabled:opacity-55"
+                                                        class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-(--home-alert-text) outline-none hover:bg-(--home-alert-surface) focus-visible:ring-3 focus-visible:ring-[#c53f52]/30 disabled:cursor-not-allowed disabled:opacity-55"
                                                         :disabled="
                                                             !speechOutputSupported
                                                         "
@@ -1268,7 +1300,7 @@ onBeforeUnmount(() => {
                                                 </a>
                                                 <Link
                                                     href="/emergency"
-                                                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-[#8a2637] ring-1 ring-[#d98290] outline-none hover:bg-[#fff7f8] focus-visible:ring-3 focus-visible:ring-[#c53f52]/30"
+                                                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-(--home-surface) px-4 text-sm font-semibold text-(--home-alert-text) ring-1 ring-[#d98290] outline-none hover:bg-(--home-alert-surface) focus-visible:ring-3 focus-visible:ring-[#c53f52]/30"
                                                 >
                                                     <MapPin
                                                         class="size-4"
@@ -1285,12 +1317,12 @@ onBeforeUnmount(() => {
                                                 class="mt-5 border-t border-[#e9a8b2] pt-4"
                                             >
                                                 <h4
-                                                    class="text-sm font-semibold text-[#711d2b]"
+                                                    class="text-sm font-semibold text-(--home-alert-text)"
                                                 >
                                                     While help is on the way
                                                 </h4>
                                                 <ol
-                                                    class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-[#711d2b] marker:font-semibold marker:text-[#c53f52]"
+                                                    class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-(--home-alert-text) marker:font-semibold marker:text-[#c53f52]"
                                                 >
                                                     <li
                                                         v-for="step in message.first_aid_steps"
@@ -1302,7 +1334,7 @@ onBeforeUnmount(() => {
                                                 </ol>
                                             </div>
                                             <p
-                                                class="mt-3 text-xs leading-5 text-[#8a2637]"
+                                                class="mt-3 text-xs leading-5 text-(--home-alert-text)"
                                             >
                                                 The AI conversation has stopped
                                                 so it does not delay urgent
@@ -1315,7 +1347,7 @@ onBeforeUnmount(() => {
                                             :class="
                                                 message.role === 'user'
                                                     ? 'bg-[#197f6d] text-white'
-                                                    : 'bg-white text-[#45635b]'
+                                                    : 'bg-(--home-surface) text-(--home-muted)'
                                             "
                                         >
                                             <p>{{ message.content }}</p>
@@ -1324,7 +1356,7 @@ onBeforeUnmount(() => {
                                                     message.role === 'assistant'
                                                 "
                                                 type="button"
-                                                class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-[#197f6d] outline-none hover:bg-[#eef8f4] focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 disabled:cursor-not-allowed disabled:opacity-55"
+                                                class="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-(--home-accent) outline-none hover:bg-(--home-soft) focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 disabled:cursor-not-allowed disabled:opacity-55"
                                                 :disabled="
                                                     !speechOutputSupported
                                                 "
@@ -1379,13 +1411,13 @@ onBeforeUnmount(() => {
                                         aria-label="AI consultant is preparing a response"
                                     >
                                         <div
-                                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#dff2ec] text-[#116655]"
+                                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-(--home-soft) text-(--home-accent)"
                                             aria-hidden="true"
                                         >
                                             <Bot class="size-4" />
                                         </div>
                                         <div
-                                            class="flex h-11 items-center gap-1.5 rounded-xl bg-white px-4 shadow-[0_8px_20px_-16px_rgba(17,102,85,0.7)]"
+                                            class="flex h-11 items-center gap-1.5 rounded-xl bg-(--home-surface) px-4 shadow-[0_8px_20px_-16px_rgba(17,102,85,0.7)]"
                                             aria-hidden="true"
                                         >
                                             <span
@@ -1412,7 +1444,9 @@ onBeforeUnmount(() => {
                                         class="sr-only"
                                         >Message for the AI consultant</Label
                                     >
-                                    <div class="flex gap-2">
+                                    <div
+                                        class="grid grid-cols-[1fr_auto_auto] gap-2 sm:flex"
+                                    >
                                         <textarea
                                             id="consultant_message"
                                             v-model="chatDraft"
@@ -1421,7 +1455,7 @@ onBeforeUnmount(() => {
                                             maxlength="1000"
                                             rows="2"
                                             placeholder="Describe the concern…"
-                                            class="min-h-12 min-w-0 flex-1 resize-none rounded-md border border-[#c6d8d1] bg-white px-3 py-2 text-base text-[#16352f] outline-none placeholder:text-[#758b84] focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
+                                            class="col-span-full min-h-12 min-w-0 flex-1 resize-none rounded-md border border-(--home-line) bg-(--home-surface) px-3 py-2 text-base text-(--home-ink) outline-none placeholder:text-(--home-muted) focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
                                             @keydown.enter.exact="
                                                 submitChatFromKeyboard
                                             "
@@ -1429,11 +1463,11 @@ onBeforeUnmount(() => {
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            class="h-auto self-stretch border-[#c6d8d1] px-3 text-[#197f6d] hover:bg-[#e9f5f0] hover:text-[#116655]"
+                                            class="col-start-2 min-h-11 min-w-11 self-stretch border-(--home-line) px-3 text-(--home-accent) hover:bg-(--home-soft) hover:text-(--home-accent) sm:h-auto"
                                             :class="
                                                 isListening
-                                                    ? 'bg-[#dff2ec] ring-3 ring-[#197f6d]/20'
-                                                    : 'bg-white'
+                                                    ? 'bg-(--home-soft) ring-3 ring-[#197f6d]/20'
+                                                    : 'bg-(--home-surface)'
                                             "
                                             :disabled="
                                                 chatProcessing ||
@@ -1467,7 +1501,7 @@ onBeforeUnmount(() => {
                                         </Button>
                                         <Button
                                             type="submit"
-                                            class="h-auto self-stretch bg-[#197f6d] px-4 text-white hover:bg-[#116655]"
+                                            class="min-h-11 min-w-11 self-stretch bg-[#197f6d] px-4 text-white hover:bg-[#116655] sm:h-auto"
                                             :disabled="chatProcessing"
                                             aria-label="Send message"
                                         >
@@ -1483,7 +1517,9 @@ onBeforeUnmount(() => {
                                         class="mt-2"
                                         :message="chatError"
                                     />
-                                    <p class="mt-2 text-xs text-[#60766f]">
+                                    <p
+                                        class="mt-2 hidden text-xs text-(--home-muted) sm:block"
+                                    >
                                         Enter to send. Shift + Enter for a new
                                         line.
                                     </p>
@@ -1492,7 +1528,7 @@ onBeforeUnmount(() => {
                                             speechInputStatus ||
                                             !speechInputSupported
                                         "
-                                        class="mt-1 text-xs font-medium text-[#45635b]"
+                                        class="mt-1 text-xs font-medium text-(--home-muted)"
                                         role="status"
                                         aria-live="polite"
                                     >
@@ -1507,7 +1543,7 @@ onBeforeUnmount(() => {
                                     v-if="canContinueFromChat"
                                     action="/consultant/chat/intake"
                                     method="post"
-                                    class="mt-5 rounded-xl bg-[#e7f1ed] p-4 sm:flex sm:items-center sm:justify-between sm:gap-5"
+                                    class="mt-5 rounded-xl bg-(--home-soft) p-4 sm:flex sm:items-center sm:justify-between sm:gap-5"
                                     v-slot="{ errors, processing }"
                                 >
                                     <template
@@ -1535,11 +1571,13 @@ onBeforeUnmount(() => {
                                         />
                                     </template>
                                     <div class="min-w-0">
-                                        <p class="font-semibold text-[#173a33]">
+                                        <p
+                                            class="font-semibold text-(--home-ink)"
+                                        >
                                             Continue with this concern
                                         </p>
                                         <p
-                                            class="mt-1 text-sm leading-6 text-[#45635b]"
+                                            class="mt-1 text-sm leading-6 text-(--home-muted)"
                                         >
                                             Your conversation will become an
                                             editable intake summary. MediPath
@@ -1567,7 +1605,7 @@ onBeforeUnmount(() => {
                                 </Form>
 
                                 <div
-                                    class="mt-4 flex items-start justify-between gap-4 text-xs leading-5 text-[#60766f]"
+                                    class="mt-4 flex items-start justify-between gap-4 text-xs leading-5 text-(--home-muted)"
                                 >
                                     <p>
                                         Messages are processed by Gemini and
@@ -1577,7 +1615,7 @@ onBeforeUnmount(() => {
                                     </p>
                                     <div v-if="visibleChatMessages.length">
                                         <button
-                                            class="inline-flex shrink-0 items-center gap-1 font-semibold text-[#45635b] underline underline-offset-4"
+                                            class="inline-flex shrink-0 items-center gap-1 font-semibold text-(--home-muted) underline underline-offset-4"
                                             type="button"
                                             @click="resetChat"
                                         >
@@ -1595,18 +1633,18 @@ onBeforeUnmount(() => {
                                 v-else
                                 ref="consultPanel"
                                 role="tabpanel"
-                                class="p-5 sm:p-7"
+                                class="p-3 min-[375px]:p-4 sm:p-7"
                             >
                                 <div
                                     v-if="consultantRequestReference"
-                                    class="rounded-xl bg-[#e8f5f3] p-5 text-[#154f4c]"
+                                    class="rounded-xl bg-(--home-soft) p-5 text-(--home-ink)"
                                     role="status"
                                 >
                                     <h3 class="font-semibold">
                                         Request recorded
                                     </h3>
                                     <p
-                                        class="mt-2 text-sm leading-6 text-[#356f6b]"
+                                        class="mt-2 text-sm leading-6 text-(--home-muted)"
                                     >
                                         A consultant callback request has been
                                         added to the queue with a verified phone
@@ -1624,7 +1662,7 @@ onBeforeUnmount(() => {
                                 >
                                     <div>
                                         <div
-                                            class="flex size-10 items-center justify-center rounded-xl bg-[#dff2ec] text-[#116655]"
+                                            class="flex size-10 items-center justify-center rounded-xl bg-(--home-soft) text-(--home-accent)"
                                         >
                                             <LockKeyhole
                                                 class="size-5"
@@ -1632,12 +1670,12 @@ onBeforeUnmount(() => {
                                             />
                                         </div>
                                         <h3
-                                            class="mt-4 text-xl font-semibold text-[#173a33]"
+                                            class="mt-4 text-xl font-semibold text-(--home-ink)"
                                         >
                                             Verify your callback number
                                         </h3>
                                         <p
-                                            class="mt-2 text-sm leading-6 text-[#45635b]"
+                                            class="mt-2 text-sm leading-6 text-(--home-muted)"
                                         >
                                             Enter the 6-digit code sent to
                                             {{
@@ -1651,7 +1689,7 @@ onBeforeUnmount(() => {
                                     <p
                                         v-if="callbackVerification.status"
                                         role="status"
-                                        class="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
+                                        class="flex items-center gap-2 rounded-xl bg-(--home-soft) px-4 py-3 text-sm font-medium text-(--home-ink)"
                                     >
                                         <CheckCircle2
                                             class="size-4 shrink-0"
@@ -1662,7 +1700,7 @@ onBeforeUnmount(() => {
 
                                     <div
                                         v-if="callbackVerification.demoCode"
-                                        class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
+                                        class="rounded-xl bg-(--home-warning) px-4 py-3 text-sm text-(--home-warning-text) ring-1 ring-amber-200"
                                     >
                                         <p class="font-semibold">
                                             Demo verification code
@@ -1700,12 +1738,12 @@ onBeforeUnmount(() => {
                                                 required
                                                 autofocus
                                                 aria-describedby="callback-code-hint"
-                                                class="mt-2 h-14 w-full rounded-xl border border-[#c6d8d1] bg-white px-4 text-center text-2xl font-semibold tracking-[0.32em] text-[#173a33] caret-[#197f6d] outline-none focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
+                                                class="mt-2 h-14 w-full rounded-xl border border-(--home-line) bg-(--home-surface) px-4 text-center text-2xl font-semibold tracking-[0.32em] text-(--home-ink) caret-[#197f6d] outline-none focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
                                                 placeholder="000000"
                                             />
                                             <p
                                                 id="callback-code-hint"
-                                                class="mt-2 text-sm text-[#60766f]"
+                                                class="mt-2 text-sm text-(--home-muted)"
                                             >
                                                 {{ callbackCodeExpiry }} Never
                                                 share this code with anyone.
@@ -1725,7 +1763,7 @@ onBeforeUnmount(() => {
                                     </Form>
 
                                     <div
-                                        class="flex flex-wrap items-center justify-between gap-3 border-t border-[#d2e2dc] pt-4"
+                                        class="flex flex-wrap items-center justify-between gap-3 border-t border-(--home-line) pt-4"
                                     >
                                         <Form
                                             action="/consultant/request/resend"
@@ -1735,7 +1773,7 @@ onBeforeUnmount(() => {
                                             <Button
                                                 type="submit"
                                                 variant="ghost"
-                                                class="text-[#45635b] hover:bg-[#e7f1ed] hover:text-[#173a33]"
+                                                class="text-(--home-muted) hover:bg-(--home-soft) hover:text-(--home-ink)"
                                                 :disabled="processing"
                                             >
                                                 <RotateCw
@@ -1756,7 +1794,7 @@ onBeforeUnmount(() => {
                                             <Button
                                                 type="submit"
                                                 variant="ghost"
-                                                class="text-[#60766f] hover:bg-slate-100 hover:text-[#173a33]"
+                                                class="text-(--home-muted) hover:bg-(--home-soft) hover:text-(--home-ink)"
                                             >
                                                 Use another number
                                             </Button>
@@ -1776,7 +1814,7 @@ onBeforeUnmount(() => {
                                             Request a consultant callback
                                         </h3>
                                         <p
-                                            class="mt-2 text-sm leading-6 text-slate-600"
+                                            class="mt-2 text-sm leading-6 text-(--home-muted)"
                                         >
                                             Leave a number and a short note.
                                             This is not an emergency service,
@@ -1825,7 +1863,7 @@ onBeforeUnmount(() => {
                                             :value="callbackConcernPrefill"
                                             maxlength="1000"
                                             rows="3"
-                                            class="w-full resize-y rounded-md border border-[#c6d8d1] bg-white px-3 py-2 text-base text-[#16352f] outline-none focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
+                                            class="w-full resize-y rounded-md border border-(--home-line) bg-(--home-surface) px-3 py-2 text-base text-(--home-ink) outline-none focus-visible:border-[#197f6d] focus-visible:ring-3 focus-visible:ring-[#197f6d]/25"
                                         />
                                         <InputError :message="errors.concern" />
                                     </div>
@@ -1843,9 +1881,9 @@ onBeforeUnmount(() => {
                 </div>
             </section>
         </main>
-        <footer class="border-t border-[#d2e2dc] bg-[#f8fbf9]">
+        <footer class="border-t border-(--home-line) bg-(--home-header)">
             <div
-                class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 text-sm text-[#45635b] sm:px-8"
+                class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 text-sm text-(--home-muted) sm:px-8"
             >
                 <p>Guidance, not a diagnosis.</p>
                 <Link
@@ -1859,6 +1897,41 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.home-page {
+    color-scheme: light;
+    --home-canvas: light-dark(#eef4f1, #101d19);
+    --home-surface: light-dark(#fafcfb, #192b25);
+    --home-header: light-dark(#f1f5f2, #14241e);
+    --home-soft: light-dark(#e6efe9, #223a30);
+    --home-line: light-dark(#b9cec4, #496759);
+    --home-ink: light-dark(#173a33, #ecf4ef);
+    --home-muted: light-dark(#486459, #bad1c5);
+    --home-accent: light-dark(#116655, #90dec0);
+    --home-alert-surface: light-dark(#fff0f2, #42252e);
+    --home-alert-text: light-dark(#82293d, #ffc0cc);
+    --home-warning: light-dark(#fffbeb, #3a3021);
+    --home-warning-text: light-dark(#451a03, #fce2a3);
+}
+
+.dark .home-page {
+    color-scheme: dark;
+}
+
+.home-page :deep(input[data-slot='input']) {
+    color: var(--home-ink);
+    background-color: var(--home-surface);
+    border-color: var(--home-line);
+}
+
+.home-page :deep(input[data-slot='input']::placeholder) {
+    color: var(--home-muted);
+}
+
+.home-page :deep(:focus-visible) {
+    outline: 2px solid var(--home-accent);
+    outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .home-emergency-alarm {
         animation: emergency-alarm-glow 1.8s ease-in-out infinite;
