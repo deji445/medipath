@@ -23,6 +23,7 @@ class LookupPatientRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'tracking_reference' => ['nullable', 'uuid'],
             'phone_number' => ['required', 'regex:/^\+[1-9][0-9]{7,14}$/'],
         ];
     }

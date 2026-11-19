@@ -81,8 +81,10 @@ Route::prefix('intake/routing')->name('routing.')->group(function () {
 });
 
 Route::prefix('intake/submission')->name('submission.')->group(function () {
+    Route::inertia('track', 'submission/Track')->name('track');
     Route::get('/', [PatientSubmissionController::class, 'review'])->name('review');
     Route::post('/', [PatientSubmissionController::class, 'store'])->name('store');
+    Route::get('receipt', [PatientSubmissionController::class, 'receipt'])->name('receipt');
     Route::get('complete', [PatientSubmissionController::class, 'complete'])->name('complete');
     Route::get('ambulance-demo', [PatientSubmissionController::class, 'ambulanceDemo'])
         ->name('ambulance-demo');

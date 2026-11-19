@@ -101,6 +101,49 @@
     --color-slate-950: #16352f;
 }
 
+/* Shared patient and staff surfaces follow the saved document theme. */
+.dark .care-shell {
+    color-scheme: dark;
+    --color-slate-50: #202e29;
+    --color-slate-100: #131c19;
+    --color-slate-200: #40564c;
+    --color-slate-300: #657e72;
+    --color-slate-400: #a7bcb1;
+    --color-slate-500: #b8cabe;
+    --color-slate-600: #c6d5cc;
+    --color-slate-700: #d6e3db;
+    --color-slate-800: #dfebe4;
+    --color-slate-900: #eff7f1;
+    --color-slate-950: #f5faf6;
+    --color-teal-50: #213d33;
+    --color-teal-100: #294a3d;
+    --color-teal-200: #49725f;
+    --color-teal-900: #c1edd9;
+    --color-teal-950: #e3faed;
+    --primary: #166e59;
+    --primary-foreground: white;
+    --input: #667e72;
+    --background: #1a2620;
+    --foreground: #f5faf6;
+    --muted-foreground: #c6d5cc;
+    --border: #40564c;
+    --sidebar-background: #17231d;
+    --sidebar-foreground: #dfebe4;
+    --sidebar-border: #40564c;
+    --sidebar-accent: #294a3d;
+    --sidebar-accent-foreground: #d2f3df;
+    --ring: #a5e9c7;
+}
+.dark .care-shell .bg-white {
+    background-color: #1a2620;
+}
+.dark .care-shell :is(.text-teal-700, .text-teal-800) {
+    color: #9fe6c7;
+}
+.dark .care-shell .text-teal-50 {
+    color: #ecfff4;
+}
+
 @layer utilities {
     body,
     html {

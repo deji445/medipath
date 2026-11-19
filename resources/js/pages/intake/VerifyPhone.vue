@@ -15,6 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 const props = defineProps<{
     phoneNumber: string;
+    tracking?: boolean;
     expiresAt?: string | null;
     demoCode?: string | null;
     expired?: boolean;
@@ -43,7 +44,7 @@ onMounted(() => {
 
     <section class="mx-auto max-w-xl">
         <Link
-            href="/intake?restart=1"
+            :href="tracking ? '/intake/submission/track' : '/intake?restart=1'"
             class="mb-5 inline-flex items-center gap-2 rounded-md text-sm font-medium text-slate-600 outline-none hover:text-slate-950 focus-visible:ring-3 focus-visible:ring-teal-700/30"
         >
             <ArrowLeft class="size-4" aria-hidden="true" />

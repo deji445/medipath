@@ -14,6 +14,7 @@ import {
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
+import PatientPhotoField from '@/components/PatientPhotoField.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ const props = defineProps<{
     phoneNumber?: string | null;
     existingPatient?: {
         maskedName: string;
+        photo?: string | null;
         sexAtBirth: string;
     } | null;
     history: History;
@@ -280,7 +282,7 @@ function removeMedication(index: number) {
                             <Form
                                 action="/intake/verify-phone/resend"
                                 method="post"
-                                v-slot="{ processing }"
+                                v-slot="{ processing, errors }"
                             >
                                 <Button
                                     type="submit"
@@ -294,6 +296,7 @@ function removeMedication(index: number) {
                                     />
                                     Resend code
                                 </Button>
+                                <InputError :message="errors.resend" />
                             </Form>
                             <Link
                                 href="/intake?change_phone=1"
@@ -450,6 +453,12 @@ function removeMedication(index: number) {
                             v-if="existingPatient"
                             class="border-y border-slate-200 py-6"
                         >
+                            <img
+                                v-if="existingPatient.photo"
+                                :src="existingPatient.photo"
+                                alt="Patient photo"
+                                class="mb-3 size-14 rounded-full object-cover"
+                            />
                             <p class="font-semibold text-slate-950">
                                 Returning patient found
                             </p>
@@ -496,6 +505,7 @@ function removeMedication(index: number) {
                         </section>
 
                         <section v-else class="grid gap-5 sm:grid-cols-2">
+                            <PatientPhotoField :error="errors.profile_photo" />
                             <div class="grid gap-2">
                                 <Label for="first_name">First name</Label
                                 ><Input

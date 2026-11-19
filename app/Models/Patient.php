@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property string $first_name
  * @property string $last_name
  * @property Carbon|null $date_of_birth
+ * @property string|null $profile_photo
  * @property SexAtBirth $sex_at_birth
  */
 class Patient extends Model
@@ -26,6 +27,8 @@ class Patient extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    protected $hidden = ['profile_photo'];
 
     protected $fillable = ['normalized_phone', 'first_name', 'last_name', 'date_of_birth', 'sex_at_birth'];
 

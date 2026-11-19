@@ -4,6 +4,7 @@ namespace App\Http\Requests\Intake;
 
 use App\Enums\SexAtBirth;
 use App\Models\Patient;
+use App\Support\PatientProfilePhoto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,7 @@ class StoreProfileRequest extends FormRequest
 
         return [
             'use_existing' => ['nullable', 'boolean'],
+            'profile_photo' => PatientProfilePhoto::RULES,
             'first_name' => [Rule::requiredIf(! $hasMatch), 'nullable', 'string', 'max:80'],
             'last_name' => [Rule::requiredIf(! $hasMatch), 'nullable', 'string', 'max:80'],
             'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],

@@ -12,6 +12,7 @@ final class HospitalRoutingService
     /**
      * @return array<int, array{
      *     id: string,
+     *     slug: string,
      *     name: string,
      *     fullName: string,
      *     address: string|null,
@@ -49,6 +50,7 @@ final class HospitalRoutingService
 
                 return [
                     'id' => $hospital->getKey(),
+                    'slug' => $hospital->slug,
                     'name' => $hospital->brand_name ?: $hospital->name,
                     'fullName' => $hospital->name,
                     'address' => $hospital->address,

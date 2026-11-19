@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
+import PatientPhotoField from '@/components/PatientPhotoField.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ defineProps<{
     phoneNumber: string;
     existingPatient?: {
         maskedName: string;
+        photo?: string | null;
         dateOfBirth?: string | null;
         sexAtBirth: string;
     } | null;
@@ -43,6 +45,12 @@ defineProps<{
                 v-if="existingPatient"
                 class="rounded-xl border border-teal-200 bg-teal-50 p-4"
             >
+                <img
+                    v-if="existingPatient.photo"
+                    :src="existingPatient.photo"
+                    alt="Patient photo"
+                    class="mb-3 size-14 rounded-full object-cover"
+                />
                 <p class="font-medium">We found a possible returning patient</p>
                 <p class="mt-1 text-sm text-slate-700">
                     {{ existingPatient.maskedName }}
@@ -69,6 +77,7 @@ defineProps<{
             </div>
 
             <template v-else>
+                <PatientPhotoField :error="errors.profile_photo" />
                 <div class="grid gap-5 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <Label for="first_name">First name</Label>

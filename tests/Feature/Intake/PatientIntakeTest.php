@@ -11,6 +11,8 @@ use App\Services\Assessment\AssessmentProvider;
 use App\Services\Assessment\AssessmentResult;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
@@ -33,6 +35,7 @@ class PatientIntakeTest extends TestCase
         Schema::create('patients', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('normalized_phone')->unique();
+            $table->text('profile_photo')->nullable();
             $table->string('first_name');
             $table->string('last_name');
             $table->date('date_of_birth')->nullable();
@@ -164,15 +167,17 @@ class PatientIntakeTest extends TestCase
 
         $this->post('/intake/lookup', ['phone_number' => '0241234567'])
             ->assertRedirect('/intake/verify-phone')
-            ->assertSessionHas('intake.demo_verification_code', '123456');
+            ->assertSessionHas('intake.demo_verification_code');
+        $code = session('intake.demo_verification_code');
+        $this->assertMatchesRegularExpression('/^[0-9]{6}$/', $code);
 
         Http::assertSent(fn ($request): bool => $request['sender'] === 'medpath'
-            && $request['message'] === 'Your MediPath verification code is 123456. It expires in 10 minutes. Do not share this code.');
+            && $request['message'] === "Your MediPath verification code is {$code}. It expires in 10 minutes. Do not share this code.");
 
         $this->get('/intake/verify-phone')->assertOk()->assertInertia(
             fn (Assert $page) => $page
                 ->component('intake/VerifyPhone')
-                ->where('demoCode', '123456'),
+                ->where('demoCode', $code),
         );
     }
 
@@ -402,6 +407,7 @@ class PatientIntakeTest extends TestCase
         );
 
         $this->post('/intake/profile', [
+            'profile_photo' => UploadedFile::fake()->image('portrait.png', 250, 300),
             'first_name' => 'Ama',
             'last_name' => 'Mensah',
             'date_of_birth' => '1995-06-12',
@@ -418,6 +424,10 @@ class PatientIntakeTest extends TestCase
         ])->assertRedirect('/intake/assessment');
 
         $this->assertDatabaseHas('patients', ['normalized_phone' => '+233241234567']);
+        $patient = Patient::query()->firstOrFail();
+        $image = base64_decode(Crypt::decryptString($patient->profile_photo));
+        $this->assertSame([192, 192], array_slice(getimagesizefromstring($image), 0, 2));
+        $this->assertArrayNotHasKey('profile_photo', $patient->toArray());
         $this->assertDatabaseHas('visits', ['status' => 'DRAFT', 'age_years' => 31]);
         $this->assertDatabaseHas('assessments', ['status' => 'PENDING']);
         $visit = Visit::query()->latest('started_at')->firstOrFail();

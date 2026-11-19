@@ -45,10 +45,12 @@ watch(() => page.url, revealCurrentStage);
 </script>
 
 <template>
-    <div class="patient-shell min-h-screen bg-[#edf4f1] text-slate-950">
+    <div
+        class="care-shell patient-shell min-h-screen bg-slate-100 text-slate-950"
+    >
         <Toaster position="top-center" />
         <header
-            class="relative z-30 border-b border-[#c8dbd4] bg-[#f8fbfa]/95 backdrop-blur-sm"
+            class="relative z-30 border-b border-slate-200 bg-slate-50/95 backdrop-blur-sm"
         >
             <div
                 class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8"
@@ -76,7 +78,7 @@ watch(() => page.url, revealCurrentStage);
             <ol
                 v-if="showJourney"
                 ref="journeyRail"
-                class="mx-auto flex max-w-7xl overflow-x-auto border-t border-[#dbe8e3] px-4 xl:hidden"
+                class="mx-auto flex max-w-7xl overflow-x-auto border-t border-slate-200 px-4 xl:hidden"
                 aria-label="Patient journey progress"
             >
                 <li
@@ -223,7 +225,7 @@ watch(() => page.url, revealCurrentStage);
             </div>
         </main>
 
-        <footer class="border-t border-[#c8dbd4] bg-[#f8fbfa] xl:pl-[17.5rem]">
+        <footer class="border-t border-slate-200 bg-slate-50 xl:pl-[17.5rem]">
             <div
                 class="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-5 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >

@@ -14,6 +14,9 @@ class PhoneNumberNormalizerTest extends TestCase
         return [
             'local Ghana number' => ['024 123 4567', '+233241234567'],
             'Ghana country code' => ['233-24-123-4567', '+233241234567'],
+            'international dialing prefix' => ['00233 24 123 4567', '+233241234567'],
+            'optional local trunk prefix' => ['+233 (0)24 123 4567', '+233241234567'],
+            'national mobile number' => ['241234567', '+233241234567'],
             'international number' => ['+44 7700 900123', '+447700900123'],
         ];
     }

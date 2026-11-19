@@ -145,7 +145,8 @@ final class BmsPhoneVerificationSender implements PhoneVerificationSender
     {
         return $response->successful()
             && $response->json('status') === 'success'
-            && (string) $response->json('code') === '2000';
+            && (string) $response->json('code') === '2000'
+            && (int) $response->json('summary.total_rejected', 0) === 0;
     }
 
     private function safeProviderCode(Response $response): ?string

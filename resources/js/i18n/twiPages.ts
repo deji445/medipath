@@ -1,6 +1,24 @@
 export const twiPageTranslations: Record<string, string> = {
     'One or more answers may indicate an emergency. MediPath cannot diagnose the cause or confirm that it is safe to wait.':
         'Mmuae baako anaa nea ɛboro saa betumi akyerɛ tebea a ɛyɛ ntɛm. MediPath ntumi nhu nea ɛde ba anaa ensi no pi sɛ ɛyɛ papa sɛ wotwɛn.',
+    'Acknowledged in the demo workspace': 'Wɔagye nsɛm no wɔ sɔhwɛbea no',
+    'Triage in progress in the demo workspace':
+        'Wɔrehwɛ sɛnea tebea no yɛ ntɛm wɔ sɔhwɛbea no',
+    'Closed in the demo workspace': 'Wɔawie wɔ sɔhwɛbea no',
+    'Facility location': 'Baabi a ayaresabea no wɔ',
+    'Demo acknowledgement': 'Wɔagye nsɛm no wɔ sɔhwɛbea no',
+    'Copy reference': 'Fa nɔma no bi',
+    'Reference copied': 'Woafa nɔma no bi',
+    'Select the reference to copy it.': 'Paw nɔma no na fa bi.',
+    'Track an intake': 'Hwɛ wo nsɛm a wode amane no tebea',
+    'Enter your receipt reference and the phone number used for this intake.':
+        'Kyerɛw wo krataa no nɔma ne telefon nɔma a wode amane nsɛm no.',
+    'Keep this reference to check your intake later.':
+        'Fa nɔma yi sie na akyiri yi woahwɛ wo nsɛm no tebea.',
+    'Hospital acknowledged': 'Ayaresabea no agye wo nsɛm no',
+    'Patient photo (optional)': 'Ɔyarefo mfonini (sɛ wopɛ)',
+    'JPEG or PNG, up to 2 MB.': 'JPEG anaa PNG, kosi 2 MB.',
+    'View facility on Maps': 'Hwɛ ayaresabea no wɔ asase mfonini so',
     Contact: 'Nkitahodi',
     'or go to the nearest appropriate emergency facility. Ask someone nearby to help if possible.':
         'anaa kɔ ayaresabea a ɛfata na ɛbɛn wo. Sɛ ɛbɛyɛ yiye a, srɛ obi a ɔbɛn wo sɛ ɔmmoa wo.',

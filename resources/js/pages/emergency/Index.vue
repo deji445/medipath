@@ -120,9 +120,11 @@ const findNearbyHospital = (): void => {
     <Head title="Emergency help" />
 
     <section
-        class="overflow-hidden rounded-2xl border border-[#efbdc5] bg-white shadow-sm"
+        class="overflow-hidden rounded-2xl border border-[#efbdc5] bg-white shadow-sm dark:border-[#694850]"
     >
-        <div class="bg-[#c53f52] px-6 py-8 text-white sm:px-8 sm:py-10">
+        <div
+            class="bg-[#b33549] px-6 py-8 text-white sm:px-8 sm:py-10 dark:bg-[#622735]"
+        >
             <div class="flex items-start gap-4">
                 <ShieldAlert class="mt-1 size-8 shrink-0" aria-hidden="true" />
                 <div class="min-w-0">
@@ -150,7 +152,7 @@ const findNearbyHospital = (): void => {
                 v-if="emergencyContact.phone"
                 :href="`tel:${emergencyContact.phone}`"
                 aria-describedby="call-first-guidance"
-                class="mt-7 inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-md bg-white px-6 py-4 text-lg font-semibold text-[#8a2637] outline-none hover:bg-[#fff0f2] focus-visible:ring-3 focus-visible:ring-white/60 sm:w-auto"
+                class="mt-7 inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-md bg-[#fffafa] px-6 py-4 text-lg font-semibold text-[#8a2637] outline-none hover:bg-[#fff0f2] focus-visible:ring-3 focus-visible:ring-white/60 sm:w-auto"
             >
                 <PhoneCall class="size-6" aria-hidden="true" />
                 Call {{ emergencyContact.phone }} now
@@ -214,7 +216,7 @@ const findNearbyHospital = (): void => {
                 </p>
                 <p
                     v-if="locationState === 'error'"
-                    class="mt-4 text-sm leading-6 text-[#a82f43]"
+                    class="mt-4 text-sm leading-6 text-[#a82f43] dark:text-[#ffb6c1]"
                     role="alert"
                 >
                     {{ locationError }}

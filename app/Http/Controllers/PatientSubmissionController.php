@@ -131,7 +131,7 @@ class PatientSubmissionController extends Controller
                 ) ?? ArrivalType::PreArrival,
                 'severity' => $visit->assessment->severity,
                 'recommended_action' => $visit->assessment->recommended_action,
-                'submission_snapshot' => $snapshot->build($visit, $consent),
+                'submission_snapshot' => [...$snapshot->build($visit, $consent), 'live_partner_at_submission' => (bool) $hospital->is_live_partner],
             ]);
 
             $visit->update([
@@ -152,19 +152,34 @@ class PatientSubmissionController extends Controller
             return to_route('submission.review');
         }
 
+        return $this->renderReceipt($submission, true);
+    }
+
+    public function receipt(Request $request): Response|RedirectResponse
+    {
+        $reference = $request->session()->get('tracked_submission_reference');
+        $submission = is_string($reference) ? HospitalSubmission::with('hospital')->find($reference) : null;
+
+        return $submission ? $this->renderReceipt($submission, false) : to_route('submission.track');
+    }
+
+    private function renderReceipt(HospitalSubmission $submission, bool $showJourney): Response
+    {
         $hospital = $submission->hospital;
 
         return Inertia::render('submission/Complete', [
+            'showJourney' => $showJourney,
             'submission' => [
                 'reference' => $submission->getKey(),
                 'receivedAt' => $submission->received_at?->toIso8601String(),
+                'acknowledgedAt' => $submission->acknowledged_at?->toIso8601String(),
                 'status' => $submission->status->value,
             ],
             'hospital' => [
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
-                'isLivePartner' => (bool) $hospital->is_live_partner,
+                'isLivePartner' => $submission->wasSentToPartner(),
             ],
         ]);
     }

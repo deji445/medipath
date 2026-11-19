@@ -881,7 +881,7 @@ onBeforeUnmount(() => {
                     </button>
                     <Link
                         href="/emergency"
-                        class="home-emergency-alarm inline-flex size-11 items-center justify-center rounded-full bg-[#c53f52] text-white shadow-[0_8px_20px_-10px_rgba(197,63,82,0.9)] transition-colors outline-none hover:bg-[#ad3145] focus-visible:ring-3 focus-visible:ring-[#c53f52]/35"
+                        class="home-emergency-alarm inline-flex size-11 items-center justify-center rounded-full border border-(--home-line) bg-(--home-surface) text-(--home-alert-text) transition-colors outline-none hover:bg-(--home-alert-surface) focus-visible:ring-3 focus-visible:ring-[#c53f52]/35"
                         aria-label="Emergency help"
                         title="Emergency help"
                     >
@@ -905,7 +905,7 @@ onBeforeUnmount(() => {
                     aria-hidden="true"
                 >
                     <svg
-                        class="h-full w-full opacity-45 sm:opacity-70 lg:opacity-80"
+                        class="h-full w-full opacity-45 sm:opacity-70 lg:opacity-80 dark:opacity-20"
                         viewBox="0 0 1440 720"
                         preserveAspectRatio="xMidYMid slice"
                         fill="none"
@@ -1073,7 +1073,7 @@ onBeforeUnmount(() => {
                         </Form>
 
                         <div
-                            class="mt-4 flex items-center border-t border-(--home-line) pt-3"
+                            class="mt-4 flex flex-wrap items-center justify-between gap-x-4 border-t border-(--home-line) pt-3"
                         >
                             <a
                                 href="#consult"
@@ -1085,6 +1085,11 @@ onBeforeUnmount(() => {
                                     aria-hidden="true"
                                 />
                             </a>
+                            <Link
+                                href="/intake/submission/track"
+                                class="inline-flex min-h-11 items-center text-sm font-semibold text-(--home-accent) underline-offset-4 hover:underline"
+                                >Track an intake</Link
+                            >
                         </div>
                     </section>
                 </div>
@@ -1112,10 +1117,14 @@ onBeforeUnmount(() => {
                             </p>
                             <Link
                                 href="/emergency"
-                                class="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-(--home-alert-text) underline underline-offset-4"
-                                ><Siren class="size-4" aria-hidden="true" />Open
-                                emergency help</Link
-                            >
+                                class="mt-3 inline-flex min-h-11 items-center gap-2.5 rounded-lg border border-(--home-line) bg-(--home-surface) px-3.5 text-sm font-semibold text-(--home-ink) transition-colors hover:border-(--home-alert-text) hover:bg-(--home-alert-surface)"
+                                ><Siren
+                                    class="size-4 text-(--home-alert-text)"
+                                    aria-hidden="true" />Emergency
+                                help<ArrowRight
+                                    class="size-4"
+                                    aria-hidden="true"
+                            /></Link>
                         </div>
 
                         <div
@@ -1899,13 +1908,13 @@ onBeforeUnmount(() => {
 <style scoped>
 .home-page {
     color-scheme: light;
-    --home-canvas: light-dark(#eef4f1, #101d19);
-    --home-surface: light-dark(#fafcfb, #192b25);
+    --home-canvas: light-dark(#eef4f1, #101816);
+    --home-surface: light-dark(#fafcfb, #1b2622);
     --home-header: light-dark(#f1f5f2, #14241e);
     --home-soft: light-dark(#e6efe9, #223a30);
     --home-line: light-dark(#b9cec4, #496759);
-    --home-ink: light-dark(#173a33, #ecf4ef);
-    --home-muted: light-dark(#486459, #bad1c5);
+    --home-ink: light-dark(#173a33, #f6faf8);
+    --home-muted: light-dark(#486459, #d1ddd7);
     --home-accent: light-dark(#116655, #90dec0);
     --home-alert-surface: light-dark(#fff0f2, #42252e);
     --home-alert-text: light-dark(#82293d, #ffc0cc);
@@ -1963,12 +1972,12 @@ onBeforeUnmount(() => {
     100% {
         box-shadow:
             0 0 0 0 rgba(197, 63, 82, 0.12),
-            0 8px 20px -10px rgba(197, 63, 82, 0.85);
+            0 1px 6px rgba(197, 63, 82, 0.1);
     }
     50% {
         box-shadow:
-            0 0 0 7px rgba(197, 63, 82, 0.17),
-            0 10px 28px -8px rgba(197, 63, 82, 0.78);
+            0 0 0 3px rgba(197, 63, 82, 0.12),
+            0 1px 8px rgba(197, 63, 82, 0.14);
     }
 }
 

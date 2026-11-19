@@ -34,15 +34,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (PhoneVerificationDeliveryException $exception, Request $request) {
             $message = 'The verification message could not be sent right now. Please wait a moment and try again.';
+            $field = $request->is('*/resend') ? 'resend' : 'phone_number';
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => $message,
-                    'errors' => ['phone_number' => [$message]],
+                    'errors' => [$field => [$message]],
                 ], 503);
             }
 
-            return back()->withErrors(['phone_number' => $message])->withInput();
+            return back()->withErrors([$field => $message])->withInput($request->only('phone_number', 'tracking_reference'));
         });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

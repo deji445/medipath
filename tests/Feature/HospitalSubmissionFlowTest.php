@@ -207,6 +207,42 @@ class HospitalSubmissionFlowTest extends TestCase
                 ->where('submissions.data.0.location.manual', 'Accra'));
     }
 
+    public function test_tracking_reopens_only_the_verified_receipt_and_shows_staff_acknowledgement(): void
+    {
+        DB::table('hospitals')->where('id', self::HOSPITAL_ID)->update(['is_live_partner' => true]);
+        $this->withSession($this->visitSession())->post(route('submission.store'), ['share_consent' => '1']);
+        $submission = HospitalSubmission::firstOrFail();
+        $this->actingAs($this->staff())
+            ->patch(route('dashboard.submissions.status', $submission), ['status' => 'ACKNOWLEDGED'])
+            ->assertSessionHasNoErrors();
+        $time = $submission->refresh()->acknowledged_at;
+        $this->assertNotNull($time);
+        $this->app['auth']->forgetGuards();
+        config(['medipath.phone_verification.driver' => 'demo', 'medipath.phone_verification.demo_code' => '123456']);
+
+        foreach ([['0241234567', true, false], ['0200000099', false, false], ['0200000099', true, true]] as [$phone, $private, $allowed]) {
+            $this->post('/intake/lookup', ['phone_number' => $phone, 'tracking_reference' => $submission->id])
+                ->assertRedirect('/intake/verify-phone');
+            $response = $this->withSession(['intake.pending_phone_verification.private_sms' => $private])
+                ->post('/intake/verify-phone', ['code' => '123456']);
+            $response->assertSessionMissing('intake.patient_id')->assertSessionMissing('active_visit_reference');
+
+            if (! $allowed) {
+                $response->assertRedirect(route('submission.track'))->assertSessionHasErrors('tracking_reference');
+                $this->get(route('submission.receipt'))->assertRedirect(route('submission.track'));
+
+                continue;
+            }
+
+            $response->assertRedirect(route('submission.receipt'));
+            $this->get(route('submission.receipt'))->assertInertia(fn (Assert $page) => $page
+                ->where('submission.reference', $submission->id)
+                ->where('submission.acknowledgedAt', $time->toIso8601String())
+                ->where('showJourney', false)
+                ->missing('patient'));
+        }
+    }
+
     public function test_repeating_the_final_request_does_not_duplicate_the_submission(): void
     {
         $this->withSession($this->visitSession())

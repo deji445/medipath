@@ -13,17 +13,21 @@ use App\Http\Requests\Intake\StoreIdentityRequest;
 use App\Http\Requests\Intake\StoreProfileRequest;
 use App\Http\Requests\Intake\StoreVisitRequest;
 use App\Http\Requests\Intake\VerifyPhoneRequest;
+use App\Models\HospitalSubmission;
 use App\Models\Patient;
 use App\Models\Visit;
 use App\Services\Assessment\InitialConcernSafetyScreener;
 use App\Services\Routing\ManualLocationGeocoder;
 use App\Services\Verification\PhoneVerificationService;
 use App\Support\PatientAge;
+use App\Support\PatientProfilePhoto;
 use App\Support\RecoverableDatabaseTransaction;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -39,7 +43,7 @@ class PatientIntakeController extends Controller
     ): Response {
         if ($request->boolean('restart')) {
             $request->session()->forget('intake');
-            $request->session()->forget(['active_visit_reference', 'assessment_red_flags']);
+            $request->session()->forget(['active_visit_reference', 'completed_visit_reference', 'tracked_submission_reference', 'assessment_red_flags']);
         }
 
         if ($request->boolean('change_phone')) {
@@ -85,6 +89,8 @@ class PatientIntakeController extends Controller
         return Inertia::render('intake/Start', [
             'phoneNumber' => $request->session()->get('intake.phone'),
             'existingPatient' => $patient ? [
+                'photo' => $request->session()->get('intake.private_sms') && $patient->profile_photo
+                    ? 'data:image/jpeg;base64,'.Crypt::decryptString($patient->profile_photo) : null,
                 'maskedName' => $this->maskName($patient->first_name, $patient->last_name),
                 'sexAtBirth' => $patient->sex_at_birth->value,
             ] : null,
@@ -129,9 +135,13 @@ class PatientIntakeController extends Controller
         $arrivalType = $request->session()->get('intake.arrival_type');
         $chatHandoff = $request->session()->get('intake.chat_handoff');
 
+        $issued = $verification->issue($phone, $request->filled('tracking_reference'));
         $request->session()->forget('intake');
-        $request->session()->forget(['active_visit_reference', 'assessment_red_flags']);
-        $issued = $verification->issue($phone);
+        $request->session()->forget(['active_visit_reference', 'completed_visit_reference', 'tracked_submission_reference', 'assessment_red_flags']);
+        if ($request->filled('tracking_reference')) {
+            $request->session()->put('intake.tracking_reference', $request->validated('tracking_reference'));
+            $chatHandoff = null;
+        }
         $request->session()->put('intake.pending_phone_verification', $issued['challenge']);
         $request->session()->put('intake.streamlined', $request->boolean('streamlined'));
 
@@ -175,6 +185,7 @@ class PatientIntakeController extends Controller
         }
 
         return Inertia::render('intake/VerifyPhone', [
+            'tracking' => $request->session()->has('intake.tracking_reference'),
             'phoneNumber' => $this->maskPhone($challenge['phone']),
             'expiresAt' => $challenge['expires_at'] ?? null,
             'demoCode' => $expired
@@ -222,7 +233,6 @@ class PatientIntakeController extends Controller
         }
 
         $phone = $challenge['phone'];
-        $patient = Patient::query()->where('normalized_phone', $phone)->first();
         $streamlined = $request->session()->get('intake.streamlined') === true;
 
         $request->session()->forget([
@@ -230,13 +240,29 @@ class PatientIntakeController extends Controller
             'intake.demo_verification_code',
             'intake.streamlined',
         ]);
+        $request->session()->regenerate();
+
+        if ($reference = $request->session()->pull('intake.tracking_reference')) {
+            $submission = HospitalSubmission::query()
+                ->whereKey($reference)
+                ->whereHas('visit.patient', fn ($query) => $query->where('normalized_phone', $phone))
+                ->first();
+
+            if (! $submission || (($challenge['private_sms'] ?? false) !== true && $submission->wasSentToPartner())) {
+                return to_route('submission.track')->withErrors(['tracking_reference' => 'Unable to open this receipt. Check the reference and phone number.']);
+            }
+            $request->session()->put('tracked_submission_reference', $submission->getKey());
+
+            return to_route('submission.receipt');
+        }
+
+        $patient = Patient::query()->where('normalized_phone', $phone)->first();
+        $request->session()->put('intake.private_sms', $challenge['private_sms'] ?? false);
         $request->session()->put('intake.phone', $phone);
 
         if ($patient) {
             $request->session()->put('intake.patient_id', $patient->getKey());
         }
-
-        $request->session()->regenerate();
 
         return $streamlined ? to_route('intake.start') : to_route('intake.identity');
     }
@@ -262,7 +288,7 @@ class PatientIntakeController extends Controller
             ]);
         }
 
-        $issued = $verification->issue($challenge['phone']);
+        $issued = $verification->issue($challenge['phone'], $request->session()->has('intake.tracking_reference'));
         $request->session()->put('intake.pending_phone_verification', $issued['challenge']);
 
         $request->session()->forget('intake.demo_verification_code');
@@ -341,6 +367,7 @@ class PatientIntakeController extends Controller
             ];
         }
 
+        PatientProfilePhoto::stage($request);
         $request->session()->put('intake.identity', $identity);
         $request->session()->put('intake.history', $history);
 
@@ -361,6 +388,8 @@ class PatientIntakeController extends Controller
         return Inertia::render('intake/Identity', [
             'phoneNumber' => $this->maskPhone((string) $request->session()->get('intake.phone')),
             'existingPatient' => $patient ? [
+                'photo' => $request->session()->get('intake.private_sms') && $patient->profile_photo
+                    ? 'data:image/jpeg;base64,'.Crypt::decryptString($patient->profile_photo) : null,
                 'maskedName' => $this->maskName($patient->first_name, $patient->last_name),
                 'dateOfBirth' => $patient->date_of_birth?->format('Y-m-d'),
                 'sexAtBirth' => $patient->sex_at_birth->value,
@@ -409,6 +438,7 @@ class PatientIntakeController extends Controller
             ]);
         }
 
+        PatientProfilePhoto::stage($request);
         $request->session()->put('intake.identity', $identity);
 
         return to_route('intake.history');
@@ -644,8 +674,16 @@ class PatientIntakeController extends Controller
         $ageYears = PatientAge::fromDateOfBirth($identity['date_of_birth'] ?? null)
             ?? (int) $visitData['age_years'];
 
+        $photoKey = $request->session()->get('intake.photo_key');
+        $photo = is_string($photoKey) ? Cache::get($photoKey) : null;
+        if (is_string($photoKey) && ! is_string($photo)) {
+            $request->session()->forget('intake.photo_key');
+
+            return to_route('intake.start')->withErrors(['profile_photo' => 'Your photo expired. Choose it again or continue without a photo.']);
+        }
+
         try {
-            $visit = $this->transactions->run(function () use ($identity, $history, $visitData, $phone, $ageYears): Visit {
+            $visit = $this->transactions->run(function () use ($identity, $history, $visitData, $phone, $ageYears, $photo): Visit {
                 $patientId = $identity['patient_id'] ?? null;
                 $patient = is_string($patientId) && $patientId !== ''
                     ? Patient::query()->whereKey($patientId)->firstOrFail()
@@ -656,6 +694,10 @@ class PatientIntakeController extends Controller
                         'date_of_birth' => $identity['date_of_birth'],
                         'sex_at_birth' => $identity['sex_at_birth'],
                     ]);
+
+                if ($patient->wasRecentlyCreated && is_string($photo)) {
+                    $patient->forceFill(['profile_photo' => $photo])->save();
+                }
 
                 $this->syncHistory($patient, $history);
 
@@ -739,6 +781,9 @@ class PatientIntakeController extends Controller
         }
 
         $request->session()->forget('intake');
+        if (is_string($photoKey)) {
+            Cache::forget($photoKey);
+        }
         $request->session()->flash('completed_visit_reference', $visit->getKey());
         $request->session()->put('active_visit_reference', $visit->getKey());
 

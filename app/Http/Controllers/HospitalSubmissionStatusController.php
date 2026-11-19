@@ -7,7 +7,6 @@ use App\Http\Requests\UpdateHospitalSubmissionStatusRequest;
 use App\Models\HospitalSubmission;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -35,19 +34,24 @@ class HospitalSubmissionStatusController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($submission, $nextStatus): void {
-            $updates = ['status' => $nextStatus];
+        $updates = ['status' => $nextStatus];
 
-            if ($nextStatus === SubmissionStatus::Acknowledged) {
-                $updates['acknowledged_at'] = now();
-            }
+        if ($nextStatus === SubmissionStatus::Acknowledged) {
+            $updates['acknowledged_at'] = now();
+        }
 
-            if ($nextStatus === SubmissionStatus::Closed) {
-                $updates['closed_at'] = now();
-            }
+        if ($nextStatus === SubmissionStatus::Closed) {
+            $updates['closed_at'] = now();
+        }
 
-            $submission->update($updates);
-        });
+        $changed = HospitalSubmission::whereKey($submission->getKey())
+            ->where('hospital_id', $hospitalId)
+            ->where('status', $submission->status->value)
+            ->update($updates);
+
+        if (! $changed) {
+            throw ValidationException::withMessages(['status' => 'This case has changed. Refresh the queue and try again.']);
+        }
 
         $message = match ($nextStatus) {
             SubmissionStatus::Acknowledged => 'Case acknowledged.',

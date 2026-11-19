@@ -54,6 +54,11 @@ class HospitalSubmission extends Model
         ];
     }
 
+    public function wasSentToPartner(): bool
+    {
+        return (bool) ($this->submission_snapshot['live_partner_at_submission'] ?? $this->hospital->is_live_partner);
+    }
+
     /** @return BelongsTo<Visit, $this> */
     public function visit(): BelongsTo
     {

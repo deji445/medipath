@@ -18,7 +18,7 @@ withDefaults(defineProps<Props>(), {
 <template>
     <AppShell
         variant="sidebar"
-        class="bg-slate-50 text-slate-950 [--background:#f8fafc] [--foreground:#0f172a] [--sidebar-accent-foreground:#115e59] [--sidebar-accent:#ccfbf1] [--sidebar-background:#ffffff] [--sidebar-border:#e2e8f0] [--sidebar-foreground:#334155] [--sidebar-primary-foreground:#ffffff] [--sidebar-primary:#0f766e]"
+        class="care-shell bg-slate-50 text-slate-950 [--background:#f8fafc] [--foreground:#0f172a] [--sidebar-accent-foreground:#115e59] [--sidebar-accent:#ccfbf1] [--sidebar-background:#ffffff] [--sidebar-border:#e2e8f0] [--sidebar-foreground:#334155] [--sidebar-primary-foreground:#ffffff] [--sidebar-primary:#0f766e]"
     >
         <AppSidebar />
         <AppContent

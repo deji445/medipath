@@ -99,6 +99,13 @@ class BmsPhoneVerificationSenderTest extends TestCase
         $this->sender()->send('+233244000000', '123456');
     }
 
+    public function test_rejected_recipient_is_not_reported_as_accepted(): void
+    {
+        Http::fake(['*' => Http::response(['status' => 'success', 'code' => '2000', 'summary' => ['total_rejected' => 1]])]);
+        $this->expectException(PhoneVerificationDeliveryException::class);
+        $this->sender()->send('+233244000000', '123456');
+    }
+
     public function test_it_retries_a_temporary_bms_failure_once(): void
     {
         Http::fakeSequence()

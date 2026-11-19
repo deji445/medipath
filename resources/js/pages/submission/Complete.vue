@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePoll } from '@inertiajs/vue3';
 import {
     Ambulance,
     ArrowRight,
@@ -8,13 +8,15 @@ import {
     Clock3,
     ShieldCheck,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
+    showJourney: boolean;
     submission: {
         reference: string;
         receivedAt?: string | null;
+        acknowledgedAt?: string | null;
         status: 'RECEIVED' | 'ACKNOWLEDGED' | 'IN_TRIAGE' | 'CLOSED';
     };
     hospital: {
@@ -27,7 +29,12 @@ const props = defineProps<{
 
 const statusLabel = computed(() =>
     !props.hospital.isLivePartner
-        ? 'Saved in MediPath demo'
+        ? {
+              RECEIVED: 'Saved in MediPath demo',
+              ACKNOWLEDGED: 'Acknowledged in the demo workspace',
+              IN_TRIAGE: 'Triage in progress in the demo workspace',
+              CLOSED: 'Closed in the demo workspace',
+          }[props.submission.status]
         : {
               RECEIVED: 'Waiting for acknowledgement',
               ACKNOWLEDGED: 'Acknowledged by the hospital',
@@ -36,7 +43,29 @@ const statusLabel = computed(() =>
           }[props.submission.status],
 );
 
+const copyFeedback = ref('');
+async function copyReference() {
+    try {
+        await navigator.clipboard.writeText(props.submission.reference);
+        copyFeedback.value = 'Reference copied';
+    } catch {
+        copyFeedback.value = 'Select the reference to copy it.';
+    }
+}
+
 const referenceGroups = computed(() => props.submission.reference.split('-'));
+const { stop } = usePoll(
+    30000,
+    { only: ['submission', 'hospital'] },
+    { autoStart: props.submission.status !== 'CLOSED' },
+);
+
+watch(
+    () => props.submission.status,
+    (status) => {
+        if (status === 'CLOSED') stop();
+    },
+);
 
 function dateTime(value?: string | null): string {
     if (!value) return 'Just now';
@@ -118,6 +147,18 @@ function dateTime(value?: string | null): string {
                         <p class="mt-1 text-sm text-slate-600">
                             Status: {{ statusLabel }}
                         </p>
+                        <p
+                            v-if="submission.acknowledgedAt"
+                            class="mt-2 text-sm font-semibold"
+                        >
+                            <span>{{
+                                hospital.isLivePartner
+                                    ? 'Hospital acknowledged'
+                                    : 'Demo acknowledgement'
+                            }}</span>
+                            ·
+                            {{ dateTime(submission.acknowledgedAt) }}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -139,9 +180,18 @@ function dateTime(value?: string | null): string {
                     </span>
                 </p>
                 <p class="mt-2 text-xs leading-5 text-slate-500">
-                    Keep this reference for the demonstration and hospital
-                    check-in.
+                    Keep this reference to check your intake later.
                 </p>
+                <button
+                    type="button"
+                    class="mt-2 min-h-11 rounded-md px-2 text-sm font-semibold text-teal-800 underline underline-offset-4"
+                    @click="copyReference"
+                >
+                    Copy reference
+                </button>
+                <span role="status" class="ml-2 text-xs text-slate-600">{{
+                    copyFeedback
+                }}</span>
             </div>
 
             <div
@@ -165,7 +215,10 @@ function dateTime(value?: string | null): string {
                 </p>
             </div>
 
-            <section class="mt-7 border-t border-slate-200 pt-7">
+            <section
+                v-if="showJourney"
+                class="mt-7 border-t border-slate-200 pt-7"
+            >
                 <div class="flex items-start gap-4">
                     <span
                         class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800"
@@ -198,7 +251,12 @@ function dateTime(value?: string | null): string {
                 aria-label="Next actions"
                 class="mt-7 flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:flex-wrap"
             >
-                <Button as-child size="lg" class="w-full sm:w-auto">
+                <Button
+                    v-if="showJourney"
+                    as-child
+                    size="lg"
+                    class="w-full sm:w-auto"
+                >
                     <Link href="/intake/submission/ambulance-demo">
                         Open tracking demo
                         <ArrowRight class="size-4" aria-hidden="true" />
@@ -210,7 +268,7 @@ function dateTime(value?: string | null): string {
                     size="lg"
                     class="w-full sm:w-auto"
                 >
-                    <Link href="/intake">Start another intake</Link>
+                    <Link href="/intake?restart=1">Start another intake</Link>
                 </Button>
                 <Button
                     as-child

@@ -15,6 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 type Hospital = {
     id: string;
+    slug: string;
     name: string;
     fullName: string;
     address?: string | null;
@@ -28,6 +29,13 @@ type Hospital = {
     reasons: string[];
     recommended: boolean;
     requiresOverrideConfirmation: boolean;
+};
+
+const facilityPhotoSources: Record<string, string> = {
+    'korle-bu-teaching-hospital':
+        'https://commons.wikimedia.org/wiki/File:Korle-Bu_Teaching_Hospital.jpg',
+    'greater-accra-regional-hospital':
+        'https://commons.wikimedia.org/wiki/File:Greater_Accra_Regional_Hospital.jpg',
 };
 
 defineProps<{
@@ -129,6 +137,36 @@ defineProps<{
                     class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
                 >
                     <div class="min-w-0">
+                        <img
+                            v-if="facilityPhotoSources[hospital.slug]"
+                            :src="`/images/facilities/${hospital.slug}.webp`"
+                            :alt="hospital.fullName"
+                            width="330"
+                            height="248"
+                            loading="lazy"
+                            class="mb-3 h-32 w-full rounded-lg object-cover sm:h-24 sm:w-36"
+                        />
+                        <figure
+                            v-else-if="hospital.slug === 'adabraka-polyclinic'"
+                            class="mb-3"
+                        >
+                            <img
+                                src="/images/facilities/adabraka-location.webp"
+                                alt="Map showing Adabraka Polyclinic on Castle Road"
+                                width="330"
+                                height="248"
+                                loading="lazy"
+                                class="h-32 w-full rounded-lg object-cover sm:h-24 sm:w-36"
+                            />
+                            <figcaption class="mt-1 text-xs text-slate-600">
+                                Facility location ·
+                                <a
+                                    href="https://www.openstreetmap.org/copyright"
+                                    class="underline"
+                                    >© OpenStreetMap contributors</a
+                                >
+                            </figcaption>
+                        </figure>
                         <div class="flex flex-wrap items-center gap-2">
                             <h2 class="text-base font-semibold text-slate-950">
                                 {{ hospital.name }}
@@ -261,6 +299,28 @@ defineProps<{
                                 <span>{{ reason }}</span>
                             </li>
                         </ul>
+                        <p v-if="facilityPhotoSources[hospital.slug]">
+                            <a
+                                :href="facilityPhotoSources[hospital.slug]"
+                                class="underline"
+                                >Photo by Fquasie</a
+                            >
+                            ·
+                            <a
+                                href="https://creativecommons.org/licenses/by-sa/4.0/"
+                                class="underline"
+                                >CC BY-SA 4.0</a
+                            >
+                            · resized
+                        </p>
+                        <a
+                            v-else
+                            :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([hospital.fullName, hospital.address, 'Ghana'].filter(Boolean).join(', '))}`"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-semibold text-teal-800 underline"
+                            >View facility on Maps</a
+                        >
                         <p v-if="hospital.isLivePartner">
                             Live connection enabled. This does not guarantee bed
                             capacity or an appointment.
