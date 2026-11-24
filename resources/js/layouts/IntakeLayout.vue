@@ -4,6 +4,7 @@ import { Check, Siren } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import LanguageSwitch from '@/components/LanguageSwitch.vue';
+import MediBuddy from '@/components/MediBuddy.vue';
 import { Toaster } from '@/components/ui/sonner';
 
 const page = usePage();
@@ -233,5 +234,6 @@ watch(() => page.url, revealCurrentStage);
                 ><span>Urgency guidance, not a diagnosis</span>
             </div>
         </footer>
+        <MediBuddy />
     </div>
 </template>

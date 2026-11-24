@@ -373,6 +373,16 @@ export const twiPageTranslations: Record<string, string> = {
     'Sending this intake does not confirm an appointment or replace emergency care. If symptoms become severe, seek urgent professional help immediately.':
         'Sɛ wode nsɛm yi mane a, ɛnkyerɛ sɛ woanya appointment na ɛnsi ntɛm ayaresa anan. Sɛ tebea no mu yɛ den a, hwehwɛ oduruyɛfo mmoa ntɛm ara.',
     'Review before sharing': 'Hwɛ bio ansa na woakyɛ',
+    'Confirm and save': 'Si pi na kora',
+    'Your intake stays private until you select Save.':
+        'Wo nsɛm no bɛtena kokoam kosi sɛ wobɛpaw Kora.',
+    'Hospital selection': 'Ayaresabea paw',
+    'Patient summary': 'Ɔyarefo nsɛm tiawa',
+    'What will be saved': 'Nsɛm a wɔbɛkora',
+    'I agree to save this demo intake in MediPath.':
+        'Mepene sɛ wɔnkora nhwɛso nsɛm yi wɔ MediPath.',
+    Save: 'Kora',
+    'Saving…': 'Wɔrekora…',
     'The intake is still private. Confirm the destination and information below before sending it to the hospital.':
         'Ɔyarefo nsɛm no da so yɛ kokoam. Si baabi ne nsɛm a ɛwɔ ase yi pi ansa na wo de akɔ ayaresabea.',
     'Selected destination': 'Baabi a wɔapaw',
@@ -399,8 +409,20 @@ export const twiPageTranslations: Record<string, string> = {
     'Already captured from your consultation':
         'Nsɛm a wɔanya dedaw afi wo nkɔmmɔbɔ no mu',
     'Preview the ambulance journey': 'Hwɛ ambulance akwantu no nhwɛso',
+    'Request an ambulance': 'Bisa ambulance',
+    'Request ambulance': 'Bisa ambulance',
+    'Requesting…': 'Wɔrebisa…',
+    'Ambulance request received': 'Yɛanya ambulance abisade no',
     Simulation: 'Nhwɛso',
     'Open tracking demo': 'Bue akwantu nhwɛso no',
+    'Your prototype request is ready. Follow the simulated vehicle on a real map of Ghana.':
+        'Wo nhwɛso abisade no ayɛ krado. Hwɛ kar nhwɛso no wɔ Ghana asase mfonini ankasa so.',
+    Medi: 'Medi',
+    'Your MediPath guide': 'Wo MediPath kwankyerɛfo',
+    'Ask Medi': 'Bisa Medi',
+    'Close Medi': 'To Medi mu',
+    'Type your concern': 'Kyerɛw wo haw no',
+    'Request a real consultant': 'Bisa ɔfotufo ankasa',
     'Ambulance tracking demo': 'Ambulance akwantu nhwɛso',
     'Simulation only': 'Nhwɛso nko ara',
     'This demonstration follows a simulated vehicle from the hospital to the patient and back. It does not contact a hospital or dispatch an ambulance.':

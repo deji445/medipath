@@ -14,7 +14,10 @@ class PhoneVerificationService
     /** @return array{challenge: array<string, int|string|bool>, demo_code: string|null} */
     public function issue(string $phoneNumber, bool $receiptLookup = false): array
     {
-        $driver = (string) config('medipath.phone_verification.driver');
+        $configuredDriver = (string) config('medipath.phone_verification.driver');
+        $driver = config('medipath.phone_verification.real_sms_enabled', false)
+            ? $configuredDriver
+            : 'demo';
         $configuredDemoCode = config('medipath.phone_verification.demo_code');
         $demoDriver = in_array($driver, ['demo', 'local'], true);
         $code = $demoDriver && is_string($configuredDemoCode) && preg_match('/^\d{6}$/', $configuredDemoCode)

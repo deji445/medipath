@@ -86,6 +86,8 @@ Route::prefix('intake/submission')->name('submission.')->group(function () {
     Route::post('/', [PatientSubmissionController::class, 'store'])->name('store');
     Route::get('receipt', [PatientSubmissionController::class, 'receipt'])->name('receipt');
     Route::get('complete', [PatientSubmissionController::class, 'complete'])->name('complete');
+    Route::post('ambulance-request', [PatientSubmissionController::class, 'requestAmbulanceDemo'])
+        ->middleware('throttle:3,10')->name('ambulance-request');
     Route::get('ambulance-demo', [PatientSubmissionController::class, 'ambulanceDemo'])
         ->name('ambulance-demo');
 });

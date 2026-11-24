@@ -28,6 +28,7 @@ import {
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { useAppearance } from '@/composables/useAppearance';
 import LanguageSwitch from '@/components/LanguageSwitch.vue';
+import MediBuddy from '@/components/MediBuddy.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1890,6 +1891,7 @@ onBeforeUnmount(() => {
                 </div>
             </section>
         </main>
+        <MediBuddy />
         <footer class="border-t border-(--home-line) bg-(--home-header)">
             <div
                 class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 text-sm text-(--home-muted) sm:px-8"

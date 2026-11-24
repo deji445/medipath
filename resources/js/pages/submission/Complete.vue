@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePoll } from '@inertiajs/vue3';
+import { Form, Head, Link, usePoll } from '@inertiajs/vue3';
 import {
     Ambulance,
     ArrowRight,
@@ -207,8 +207,8 @@ function dateTime(value?: string | null): string {
                         replace emergency care.
                     </template>
                     <template v-else>
-                        This directory selection does not contact the facility,
-                        request an ambulance, or confirm an appointment.
+                        This directory selection does not contact the facility
+                        or confirm an appointment.
                     </template>
                     If symptoms become severe, seek urgent professional help
                     immediately.
@@ -228,7 +228,7 @@ function dateTime(value?: string | null): string {
                     <div>
                         <div class="flex flex-wrap items-center gap-2">
                             <h2 class="font-semibold text-slate-950">
-                                Preview the ambulance journey
+                                Request an ambulance
                             </h2>
                             <span
                                 class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
@@ -238,10 +238,9 @@ function dateTime(value?: string | null): string {
                         <p
                             class="mt-2 max-w-2xl text-sm leading-6 text-slate-600"
                         >
-                            Follow a demonstration ambulance from
-                            {{ hospital.name }} to the patient and back to the
-                            hospital. This does not request or dispatch a real
-                            ambulance.
+                            Create a prototype request and follow its simulated
+                            journey from {{ hospital.name }}. No real ambulance
+                            is contacted.
                         </p>
                     </div>
                 </div>
@@ -251,17 +250,28 @@ function dateTime(value?: string | null): string {
                 aria-label="Next actions"
                 class="mt-7 flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:flex-wrap"
             >
-                <Button
+                <Form
                     v-if="showJourney"
-                    as-child
-                    size="lg"
+                    action="/intake/submission/ambulance-request"
+                    method="post"
+                    v-slot="{ processing }"
                     class="w-full sm:w-auto"
                 >
-                    <Link href="/intake/submission/ambulance-demo">
-                        Open tracking demo
-                        <ArrowRight class="size-4" aria-hidden="true" />
-                    </Link>
-                </Button>
+                    <Button
+                        type="submit"
+                        size="lg"
+                        class="w-full sm:w-auto"
+                        :disabled="processing"
+                    >
+                        <Ambulance class="size-4" aria-hidden="true" />
+                        {{ processing ? 'Requesting…' : 'Request ambulance' }}
+                        <ArrowRight
+                            v-if="!processing"
+                            class="size-4"
+                            aria-hidden="true"
+                        />
+                    </Button>
+                </Form>
                 <Button
                     as-child
                     variant="outline"

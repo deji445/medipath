@@ -31,7 +31,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(TenantContext::class);
         $this->app->bind(PhoneVerificationSender::class, function ($app): PhoneVerificationSender {
-            return match (config('medipath.phone_verification.driver')) {
+            $configuredDriver = (string) config('medipath.phone_verification.driver');
+            $driver = config('medipath.phone_verification.real_sms_enabled', false)
+                ? $configuredDriver
+                : 'demo';
+
+            return match ($driver) {
                 'local' => $app->make(LocalPhoneVerificationSender::class),
                 'demo' => $app->make(DemoPhoneVerificationSender::class),
                 'bms' => $app->make(BmsPhoneVerificationSender::class),

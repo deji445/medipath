@@ -163,6 +163,23 @@ class PatientSubmissionController extends Controller
         return $submission ? $this->renderReceipt($submission, false) : to_route('submission.track');
     }
 
+    public function requestAmbulanceDemo(Request $request): RedirectResponse
+    {
+        $visit = $this->activeVisit($request);
+        $submission = $visit?->hospitalSubmission;
+
+        if (! $visit || ! $submission) {
+            return to_route('submission.review');
+        }
+
+        $request->session()->put('demo_ambulance_request', [
+            'submission_reference' => $submission->getKey(),
+            'requested_at' => now()->toIso8601String(),
+        ]);
+
+        return to_route('submission.ambulance-demo');
+    }
+
     private function renderReceipt(HospitalSubmission $submission, bool $showJourney): Response
     {
         $hospital = $submission->hospital;
@@ -196,6 +213,12 @@ class PatientSubmissionController extends Controller
         }
 
         $hospital = $submission->hospital;
+        $demoRequest = $request->session()->get('demo_ambulance_request');
+        $requestedAt = is_array($demoRequest)
+            && ($demoRequest['submission_reference'] ?? null) === $submission->getKey()
+            && is_string($demoRequest['requested_at'] ?? null)
+                ? $demoRequest['requested_at']
+                : null;
 
         return Inertia::render('submission/AmbulanceDemo', [
             'submissionReference' => $submission->getKey(),
@@ -210,6 +233,10 @@ class PatientSubmissionController extends Controller
                 'label' => config('medipath.emergency.contact_label'),
                 'phone' => config('medipath.emergency.phone'),
             ],
+            'ambulanceRequest' => $requestedAt ? [
+                'requestedAt' => $requestedAt,
+                'status' => 'REQUESTED',
+            ] : null,
         ]);
     }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AuthLayout from '@/layouts/auth/AuthSimpleLayout.vue';
+import MediBuddy from '@/components/MediBuddy.vue';
 
 const { title = '', description = '' } = defineProps<{
     title?: string;
@@ -11,4 +12,5 @@ const { title = '', description = '' } = defineProps<{
     <AuthLayout :title="title" :description="description">
         <slot />
     </AuthLayout>
+    <MediBuddy />
 </template>

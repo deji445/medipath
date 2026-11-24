@@ -278,6 +278,22 @@ class HospitalSubmissionFlowTest extends TestCase
                 ->where('emergencyContact.phone', '112'));
     }
 
+    public function test_a_submitted_visit_can_create_a_demo_ambulance_request(): void
+    {
+        $this->withSession($this->visitSession())
+            ->post(route('submission.store'), ['share_consent' => '1'])
+            ->assertRedirect(route('submission.complete'));
+
+        $this->post(route('submission.ambulance-request'))
+            ->assertRedirect(route('submission.ambulance-demo'));
+
+        $this->get(route('submission.ambulance-demo'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('ambulanceRequest.status', 'REQUESTED')
+                ->where('ambulanceRequest.requestedAt', fn ($value) => is_string($value)));
+    }
+
     public function test_a_walk_in_visit_is_submitted_with_the_walk_in_arrival_type(): void
     {
         DB::table('visits')->where('id', self::VISIT_ID)->update([

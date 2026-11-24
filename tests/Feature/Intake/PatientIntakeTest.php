@@ -119,6 +119,7 @@ class PatientIntakeTest extends TestCase
     {
         config()->set([
             'medipath.phone_verification.driver' => 'bms',
+            'medipath.phone_verification.real_sms_enabled' => true,
             'medipath.phone_verification.bms.endpoint' => 'https://bms.test/api/sms/quick',
             'medipath.phone_verification.bms.api_key' => 'private-test-key',
             'medipath.phone_verification.bms.sender_id' => 'medpath',
@@ -150,10 +151,27 @@ class PatientIntakeTest extends TestCase
         );
     }
 
+    public function test_disabled_real_sms_uses_the_prototype_code_even_when_bms_is_configured(): void
+    {
+        config()->set([
+            'medipath.phone_verification.driver' => 'bms',
+            'medipath.phone_verification.real_sms_enabled' => false,
+            'medipath.phone_verification.demo_code' => '123456',
+        ]);
+        Http::fake();
+
+        $this->post('/intake/lookup', ['phone_number' => '0241234567'])
+            ->assertRedirect('/intake/verify-phone')
+            ->assertSessionHas('intake.demo_verification_code', '123456');
+
+        Http::assertNothingSent();
+    }
+
     public function test_bms_verification_can_show_the_same_code_during_explicit_prototype_mode(): void
     {
         config()->set([
             'medipath.phone_verification.driver' => 'bms',
+            'medipath.phone_verification.real_sms_enabled' => true,
             'medipath.phone_verification.show_code' => true,
             'medipath.phone_verification.bms.endpoint' => 'https://bms.test/api/sms/quick',
             'medipath.phone_verification.bms.api_key' => 'private-test-key',

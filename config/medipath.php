@@ -3,6 +3,7 @@
 return [
     'phone_verification' => [
         'driver' => env('MEDIPATH_PHONE_VERIFICATION_DRIVER', 'local'),
+        'real_sms_enabled' => (bool) env('MEDIPATH_REAL_SMS_ENABLED', false),
         'expiry_minutes' => (int) env('MEDIPATH_PHONE_VERIFICATION_EXPIRY_MINUTES', 10),
         'max_attempts' => (int) env('MEDIPATH_PHONE_VERIFICATION_MAX_ATTEMPTS', 5),
         'resend_cooldown_seconds' => (int) env('MEDIPATH_PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS', 60),

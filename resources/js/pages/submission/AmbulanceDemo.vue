@@ -33,6 +33,10 @@ const props = defineProps<{
         patientCoordinates: Coordinates;
     };
     emergencyContact: { label: string; phone: string };
+    ambulanceRequest?: {
+        requestedAt: string;
+        status: 'REQUESTED';
+    } | null;
 }>();
 
 const progress = ref(0);
@@ -231,7 +235,10 @@ onMounted(async () => {
     }).addTo(map);
     showWholeRoute();
     isMapReady.value = true;
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    if (
+        props.ambulanceRequest &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    )
         startDemo();
 });
 onBeforeUnmount(() => {
@@ -261,7 +268,11 @@ onBeforeUnmount(() => {
                             <h1
                                 class="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl"
                             >
-                                Ambulance journey demo
+                                {{
+                                    ambulanceRequest
+                                        ? 'Ambulance request received'
+                                        : 'Ambulance journey demo'
+                                }}
                             </h1>
                             <span
                                 class="rounded-full border border-white/20 px-2.5 py-1 text-xs font-semibold text-[#dff2ec]"
@@ -271,9 +282,15 @@ onBeforeUnmount(() => {
                         <p
                             class="mt-2 max-w-2xl text-sm leading-6 text-[#c5ddd5]"
                         >
-                            Follow an illustrative journey between
-                            {{ hospital.name }} and the supplied patient
-                            location on a real map of Ghana.
+                            <template v-if="ambulanceRequest">
+                                Your prototype request is ready. Follow the
+                                simulated vehicle on a real map of Ghana.
+                            </template>
+                            <template v-else>
+                                Preview an illustrative journey between
+                                {{ hospital.name }} and the supplied patient
+                                location.
+                            </template>
                         </p>
                     </div>
                 </div>
