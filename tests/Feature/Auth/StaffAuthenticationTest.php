@@ -74,6 +74,36 @@ class StaffAuthenticationTest extends TestCase
         $this->post('/register')->assertNotFound();
     }
 
+    public function test_portals_have_separate_login_pages(): void
+    {
+        $this->get('/hospital/login')->assertOk()->assertInertia(fn ($page) => $page
+            ->component('auth/Login')->where('portal', 'hospital'));
+        $this->get('/platform/login')->assertOk()->assertInertia(fn ($page) => $page
+            ->component('auth/Login')->where('portal', 'platform'));
+        $this->get('/platform')->assertRedirect('/platform/login');
+        $this->get('/hospital/settings')->assertRedirect('/hospital/login');
+    }
+
+    public function test_super_admin_cannot_sign_in_through_hospital_portal(): void
+    {
+        $this->createStaffUser(isActive: true);
+        $this->assertNull(app(AuthenticateStaffUser::class)(Request::create('/login', 'POST', [
+            'email' => 'staff@medipath.test', 'password' => 'correct-password', 'portal' => 'hospital',
+        ])));
+    }
+
+    public function test_hospital_staff_cannot_sign_in_through_platform_portal(): void
+    {
+        $staff = $this->createStaffUser(isActive: true);
+        $staff->update(['role' => StaffRole::HospitalAdmin, 'hospital_id' => (string) Str::uuid()]);
+        $this->assertNull(app(AuthenticateStaffUser::class)(Request::create('/login', 'POST', [
+            'email' => 'staff@medipath.test', 'password' => 'correct-password', 'portal' => 'platform',
+        ])));
+        $this->assertTrue($staff->is(app(AuthenticateStaffUser::class)(Request::create('/login', 'POST', [
+            'email' => 'staff@medipath.test', 'password' => 'correct-password', 'portal' => 'hospital',
+        ]))));
+    }
+
     private function createStaffUser(bool $isActive): StaffUser
     {
         return StaffUser::query()->create([

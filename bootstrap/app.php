@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('platform', 'platform/*')
+            ? route('platform.login')
+            : ($request->is('hospital/*') ? route('hospital.login') : route('login')));
+
         $middleware->alias([
             'staff.tenant' => EstablishStaffTenant::class,
         ]);

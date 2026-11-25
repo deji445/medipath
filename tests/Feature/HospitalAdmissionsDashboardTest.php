@@ -69,6 +69,14 @@ class HospitalAdmissionsDashboardTest extends TestCase
             );
     }
 
+    public function test_tenant_entry_requires_membership_of_the_requested_hospital(): void
+    {
+        $this->get('/hospitals/hospital-a')->assertRedirect('/hospital/login');
+        $this->actingAs($this->staff('00000000-0000-4000-8000-000000000001'))
+            ->get('/hospitals/hospital-a')->assertRedirect('/dashboard');
+        $this->get('/hospitals/hospital-b')->assertForbidden();
+    }
+
     public function test_staff_cannot_update_another_hospitals_submission(): void
     {
         $this->submission('10000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000002', 'MEDIUM', 'RECEIVED', 'Other Patient');

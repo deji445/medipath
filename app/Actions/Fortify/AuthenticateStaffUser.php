@@ -21,6 +21,13 @@ class AuthenticateStaffUser
             return null;
         }
 
+        $portal = $request->input('portal');
+        if (($portal === 'platform' && ! $staffUser->isSuperAdmin())
+            || ($portal === 'hospital' && ($staffUser->isSuperAdmin() || $staffUser->hospital_id === null))
+            || ($portal !== null && ! in_array($portal, ['platform', 'hospital'], true))) {
+            return null;
+        }
+
         return Hash::check((string) $request->input('password'), $staffUser->getAuthPassword())
             ? $staffUser
             : null;

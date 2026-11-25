@@ -16,9 +16,13 @@ use App\Http\Controllers\PatientRoutingController;
 use App\Http\Controllers\PatientSubmissionController;
 use App\Http\Controllers\PlatformHospitalController;
 use App\Http\Controllers\WalkInIntakeController;
+use App\Http\Controllers\WorkspaceEntryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('hospital/login', [WorkspaceEntryController::class, 'hospitalLogin'])->name('hospital.login');
+Route::get('platform/login', [WorkspaceEntryController::class, 'platformLogin'])->name('platform.login');
+Route::get('hospitals/{hospital:slug}', [WorkspaceEntryController::class, 'tenant'])->name('hospital.entry');
 Route::post('locale', LocaleController::class)->name('locale.store');
 Route::get('emergency', EmergencyHelpController::class)->name('emergency');
 Route::post('consultant/chat', [ConsultantChatController::class, 'store'])

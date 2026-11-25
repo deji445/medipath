@@ -34,7 +34,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/InputError.vue';
 import { Spinner } from '@/components/ui/spinner';
-import { dashboard, login } from '@/routes';
 import { toast } from 'vue-sonner';
 import {
     computed,
@@ -100,22 +99,6 @@ const props = defineProps<{
 
 const page = usePage();
 const { resolvedAppearance, updateAppearance } = useAppearance();
-const staffWorkspaceHref = computed(() => {
-    const user = page.props.auth.user;
-
-    if (!user) return login();
-
-    return user.role === 'SUPER_ADMIN' ? '/platform' : dashboard();
-});
-const staffWorkspaceLabel = computed(() => {
-    const user = page.props.auth.user;
-
-    if (!user) return 'Staff login';
-
-    return user.role === 'SUPER_ADMIN'
-        ? 'Hospital network'
-        : 'Admissions dashboard';
-});
 const pageRoot = useTemplateRef<HTMLElement>('pageRoot');
 const heroScene = useTemplateRef<HTMLElement>('heroScene');
 const consultPanel = useTemplateRef<HTMLElement>('consultPanel');
@@ -888,12 +871,6 @@ onBeforeUnmount(() => {
                     >
                         <Siren class="size-5" aria-hidden="true" />
                         <span class="sr-only">Emergency help</span>
-                    </Link>
-                    <Link
-                        :href="staffWorkspaceHref"
-                        class="hidden rounded-md text-sm font-semibold text-(--home-muted) outline-none hover:text-(--home-accent) focus-visible:ring-3 focus-visible:ring-[#197f6d]/30 sm:inline-flex"
-                    >
-                        {{ staffWorkspaceLabel }}
                     </Link>
                 </div>
             </nav>
@@ -1897,11 +1874,6 @@ onBeforeUnmount(() => {
                 class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 text-sm text-(--home-muted) sm:px-8"
             >
                 <p>Guidance, not a diagnosis.</p>
-                <Link
-                    :href="staffWorkspaceHref"
-                    class="inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
-                    >{{ staffWorkspaceLabel }}</Link
-                >
             </div>
         </footer>
     </div>

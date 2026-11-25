@@ -17,6 +17,7 @@ defineOptions({
 
 defineProps<{
     status?: string;
+    portal?: 'hospital' | 'platform';
 }>();
 </script>
 
@@ -36,6 +37,7 @@ defineProps<{
         v-slot="{ errors, processing }"
         class="flex flex-col gap-6"
     >
+        <input v-if="portal" type="hidden" name="portal" :value="portal" />
         <div class="grid gap-6">
             <div class="grid gap-2">
                 <Label for="email">Email address</Label>
