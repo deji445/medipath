@@ -35,6 +35,16 @@ const mainNavItems = computed<NavItem[]>(() =>
         ? [
               { title: 'Hospital network', href: '/platform', icon: Building2 },
               {
+                  title: 'Demo admissions',
+                  href: '/demo/hospital',
+                  icon: ClipboardList,
+              },
+              {
+                  title: 'Demo dispatch',
+                  href: '/hospital/dispatch',
+                  icon: Building2,
+              },
+              {
                   title: 'Consultant requests',
                   href: '/platform/consultant-requests',
                   icon: MessagesSquare,
@@ -42,6 +52,17 @@ const mainNavItems = computed<NavItem[]>(() =>
           ]
         : [
               { title: 'Admissions', href: dashboard(), icon: ClipboardList },
+              ...(['HOSPITAL_ADMIN', 'TRIAGE'].includes(
+                  page.props.auth.user.role ?? '',
+              )
+                  ? [
+                        {
+                            title: 'Dispatch',
+                            href: '/hospital/dispatch',
+                            icon: Building2,
+                        },
+                    ]
+                  : []),
               ...(isHospitalAdmin.value
                   ? [
                         {

@@ -1,4 +1,27 @@
 export const twiPageTranslations: Record<string, string> = {
+    // Draft companion and transport labels; pending human review.
+    'Help with this step': 'Mmoa wɔ anammɔn yi ho',
+    Minimise: 'Ma ɛnyɛ ketewa',
+    'Resume intake': 'Toa wo nsɛm no so',
+    'View saved intake': 'Hwɛ nsɛm a wɔakora no',
+    'Request demo ambulance': 'Bisa sɔhwɛ ambulance',
+    'Track ambulance': 'Hwɛ ambulance no tebea',
+    'Use microphone': 'Fa maek no di dwuma',
+    'Stop microphone': 'Gyae maek no',
+    'Stop audio': 'Gyae nne no',
+    'Twi voice is still being tested. Please type your message.':
+        'Wɔda so resɔ Twi nne ahwɛ. Yɛsrɛ wo, kyerɛw wo nkra no.',
+    'Demo ambulance tracking': 'Sɔhwɛ ambulance akyidi',
+    'Dispatch updates': 'Ambulance ho nsɛm foforo',
+    'Waiting for a dispatcher': 'Retwɛn nea ɔbɛma ambulance akɔ',
+    'Waiting for assignment': 'Retwɛn sɛ wɔbɛpaw ambulance',
+    'Crew assigned': 'Wɔapaw adwumayɛfo',
+    'Travelling to patient': 'Wɔrekɔ ɔyarefo no nkyɛn',
+    'At patient': 'Wɔadu ɔyarefo no nkyɛn',
+    'Returning to hospital': 'Wɔresan akɔ ayaresabea',
+    'Request cancelled': 'Wɔatwa abisade no mu',
+    'No arrival estimate yet': 'Wɔnkyerɛɛ bere a wɔbɛdu hɔ ɛ',
+    'Journey history': 'Akwantu no ho nsɛm',
     'One or more answers may indicate an emergency. MediPath cannot diagnose the cause or confirm that it is safe to wait.':
         'Mmuae baako anaa nea ɛboro saa betumi akyerɛ tebea a ɛyɛ ntɛm. MediPath ntumi nhu nea ɛde ba anaa ensi no pi sɛ ɛyɛ papa sɛ wotwɛn.',
     'Acknowledged in the demo workspace': 'Wɔagye nsɛm no wɔ sɔhwɛbea no',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePoll } from '@inertiajs/vue3';
 import {
     Ambulance,
     Building2,
@@ -35,7 +35,12 @@ const props = defineProps<{
     emergencyContact: { label: string; phone: string };
     ambulanceRequest?: {
         requestedAt: string;
-        status: 'REQUESTED';
+        status: string;
+        updatedAt: string;
+        vehicle: string | null;
+        crew: string | null;
+        etaMinutes: number | null;
+        events: { status: string; at: string }[];
     } | null;
 }>();
 
@@ -49,6 +54,36 @@ const updatedAt = ref(new Date());
 let timer: ReturnType<typeof setInterval> | null = null;
 let map: LeafletMap | null = null;
 let ambulanceMarker: LeafletMarker | null = null;
+const dispatchLabels: Record<string, string> = {
+    REQUESTED: 'Waiting for a dispatcher',
+    ASSIGNED: 'Vehicle and crew assigned',
+    EN_ROUTE: 'Travelling to the patient',
+    AT_PATIENT: 'Arrived at the patient',
+    RETURNING: 'Returning to the hospital',
+    COMPLETED: 'Demo journey completed',
+    CANCELLED: 'Request cancelled',
+};
+usePoll(5000, { only: ['ambulanceRequest'] });
+watch(
+    () => props.ambulanceRequest,
+    (request) => {
+        if (!request) return;
+        progress.value =
+            (
+                {
+                    REQUESTED: 0,
+                    ASSIGNED: 0,
+                    EN_ROUTE: 25,
+                    AT_PATIENT: 50,
+                    RETURNING: 75,
+                    COMPLETED: 100,
+                    CANCELLED: 0,
+                } as Record<string, number>
+            )[request.status] ?? 0;
+        updatedAt.value = new Date(request.updatedAt);
+    },
+    { immediate: true },
+);
 
 const stages = [
     { threshold: 0, title: 'Preparing at the hospital' },
@@ -66,7 +101,11 @@ const currentStageIndex = computed(() => {
     });
     return index;
 });
-const currentStage = computed(() => stages[currentStageIndex.value]);
+const currentStage = computed(() =>
+    props.ambulanceRequest
+        ? { title: dispatchLabels[props.ambulanceRequest.status] }
+        : stages[currentStageIndex.value],
+);
 const remainingMinutes = computed(() => {
     const fraction =
         progress.value <= 50
@@ -78,6 +117,10 @@ const remainingMinutes = computed(() => {
     );
 });
 const etaLabel = computed(() => {
+    if (props.ambulanceRequest)
+        return props.ambulanceRequest.etaMinutes
+            ? `Dispatcher estimate: ${props.ambulanceRequest.etaMinutes} min`
+            : 'No arrival estimate yet';
     if (progress.value >= 100) return 'Journey complete';
     return progress.value < 50
         ? `${remainingMinutes.value} min to patient`
@@ -211,16 +254,28 @@ onMounted(async () => {
         '<svg viewBox="0 0 24 24"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM6 11h5M8.5 8.5v5M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>',
         48,
     );
+    const popup = (title: string, detail: string) => {
+        const container = document.createElement('div');
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        container.append(
+            heading,
+            document.createElement('br'),
+            document.createTextNode(detail),
+        );
+        return container;
+    };
     L.marker(hospital, { icon: hospitalIcon })
         .addTo(map)
         .bindPopup(
-            `<strong>${props.hospital.name}</strong><br>${props.hospital.address ?? 'Selected hospital'}`,
+            popup(
+                props.hospital.name,
+                props.hospital.address ?? 'Selected hospital',
+            ),
         );
     L.marker(patient, { icon: patientIcon })
         .addTo(map)
-        .bindPopup(
-            `<strong>Patient location</strong><br>${props.plan.patientLocation}`,
-        );
+        .bindPopup(popup('Patient location', props.plan.patientLocation));
     L.polyline([hospital, patient], {
         color: '#197f6d',
         weight: 5,
@@ -235,11 +290,7 @@ onMounted(async () => {
     }).addTo(map);
     showWholeRoute();
     isMapReady.value = true;
-    if (
-        props.ambulanceRequest &&
-        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    )
-        startDemo();
+    updateMapMarker();
 });
 onBeforeUnmount(() => {
     pauseDemo();
@@ -270,7 +321,7 @@ onBeforeUnmount(() => {
                             >
                                 {{
                                     ambulanceRequest
-                                        ? 'Ambulance request received'
+                                        ? 'Demo ambulance tracking'
                                         : 'Ambulance journey demo'
                                 }}
                             </h1>
@@ -283,8 +334,8 @@ onBeforeUnmount(() => {
                             class="mt-2 max-w-2xl text-sm leading-6 text-[#c5ddd5]"
                         >
                             <template v-if="ambulanceRequest">
-                                Your prototype request is ready. Follow the
-                                simulated vehicle on a real map of Ghana.
+                                Updates come from the demo dispatcher. No real
+                                ambulance is being sent.
                             </template>
                             <template v-else>
                                 Preview an illustrative journey between
@@ -319,7 +370,10 @@ onBeforeUnmount(() => {
                         >
                             {{ currentStage.title }}
                         </p>
-                        <p class="mt-1 text-xs text-slate-500">
+                        <p
+                            v-if="!ambulanceRequest"
+                            class="mt-1 text-xs text-slate-500"
+                        >
                             Updated {{ lastUpdated }}
                         </p>
                     </div>
@@ -329,7 +383,10 @@ onBeforeUnmount(() => {
                         >
                             {{ etaLabel }}
                         </p>
-                        <p class="mt-1 text-xs text-slate-500">
+                        <p
+                            v-if="!ambulanceRequest"
+                            class="mt-1 text-xs text-slate-500"
+                        >
                             Estimated {{ plan.etaMinMinutes }}–{{
                                 plan.etaMaxMinutes
                             }}
@@ -389,7 +446,10 @@ onBeforeUnmount(() => {
                             :style="{ width: `${progress}%` }"
                         />
                     </div>
-                    <div class="mt-4 flex flex-wrap gap-3">
+                    <div
+                        v-if="!ambulanceRequest"
+                        class="mt-4 flex flex-wrap gap-3"
+                    >
                         <Button
                             v-if="!isRunning && progress < 100"
                             type="button"
@@ -422,6 +482,30 @@ onBeforeUnmount(() => {
             </div>
 
             <aside class="p-5 sm:p-8">
+                <div
+                    v-if="ambulanceRequest"
+                    class="mb-6 border-b border-slate-200 pb-5"
+                >
+                    <h2 class="font-semibold">Dispatch updates</h2>
+                    <p class="mt-2 text-sm">
+                        {{
+                            ambulanceRequest.vehicle ||
+                            'Awaiting vehicle assignment'
+                        }}
+                    </p>
+                    <p v-if="ambulanceRequest.crew" class="mt-1 text-sm">
+                        Crew: {{ ambulanceRequest.crew }}
+                    </p>
+                    <ol class="mt-4 space-y-2 text-sm">
+                        <li
+                            v-for="event in ambulanceRequest.events"
+                            :key="event.status + event.at"
+                        >
+                            {{ dispatchLabels[event.status] }} ·
+                            {{ new Date(event.at).toLocaleTimeString() }}
+                        </li>
+                    </ol>
+                </div>
                 <div class="grid gap-4 border-b border-slate-200 pb-6">
                     <div class="flex gap-3">
                         <Building2
@@ -462,10 +546,13 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
                 </div>
-                <h2 class="mt-6 font-semibold text-slate-950">
+                <h2
+                    v-if="!ambulanceRequest"
+                    class="mt-6 font-semibold text-slate-950"
+                >
                     Journey status
                 </h2>
-                <ol class="mt-5 space-y-0">
+                <ol v-if="!ambulanceRequest" class="mt-5 space-y-0">
                     <li
                         v-for="(stage, index) in stages"
                         :key="stage.title"

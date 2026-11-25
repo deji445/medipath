@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\HospitalCapability;
 use App\Models\Hospital;
+use App\Support\DemoHospital;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -12,6 +13,7 @@ final class EmergencyHelpController extends Controller
     public function __invoke(): Response
     {
         $hospitals = Hospital::query()
+            ->where('id', '!=', DemoHospital::ID)
             ->where('is_active', true)
             ->where('accepting_submissions', true)
             ->where('capability', HospitalCapability::EmergencyCapable)

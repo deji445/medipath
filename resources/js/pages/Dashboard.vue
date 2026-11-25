@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage, usePoll } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ChevronRight,
@@ -60,6 +60,8 @@ defineOptions({
 });
 
 const search = ref(props.filters.search);
+const page = usePage();
+usePoll(15000, { only: ['counts', 'submissions'] });
 const severity = ref(props.filters.severity);
 const status = ref(props.filters.status);
 const selectedId = ref<string | null>(props.submissions.data[0]?.id ?? null);
@@ -109,7 +111,7 @@ onBeforeUnmount(() => {
 
 function loadFilters(): void {
     router.get(
-        '/dashboard',
+        page.url.split('?')[0],
         {
             search: search.value || undefined,
             severity: severity.value === 'ALL' ? undefined : severity.value,
@@ -237,6 +239,24 @@ function timeAgo(value: string): string {
                 </div>
             </div>
         </header>
+        <div
+            v-if="hospital?.fullName === 'MediPath Demo Hospital'"
+            class="flex flex-wrap items-center gap-4 border-b border-slate-200 px-5 py-4 text-sm sm:px-8"
+        >
+            <p>Fictional hospital · Use dummy patient details.</p>
+            <a
+                href="/walk-in/medipath-demo"
+                target="_blank"
+                rel="noopener"
+                class="font-semibold text-teal-800 underline underline-offset-4"
+                >Open patient demo</a
+            >
+            <a
+                href="/hospital/dispatch"
+                class="font-semibold text-teal-800 underline underline-offset-4"
+                >Open dispatch</a
+            >
+        </div>
 
         <main class="mx-auto max-w-[1600px] px-5 py-5 sm:px-8 sm:py-7">
             <section

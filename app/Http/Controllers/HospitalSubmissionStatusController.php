@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\SubmissionStatus;
 use App\Http\Requests\UpdateHospitalSubmissionStatusRequest;
 use App\Models\HospitalSubmission;
+use App\Support\DemoHospital;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +18,7 @@ class HospitalSubmissionStatusController extends Controller
         HospitalSubmission $submission,
         TenantContext $tenantContext,
     ): RedirectResponse {
-        $hospitalId = $tenantContext->hospitalId();
+        $hospitalId = $tenantContext->isSuperAdmin() ? DemoHospital::ID : $tenantContext->hospitalId();
         abort_if($hospitalId === null || ! hash_equals($hospitalId, $submission->hospital_id), 404);
 
         $nextStatus = SubmissionStatus::from($request->string('status')->toString());

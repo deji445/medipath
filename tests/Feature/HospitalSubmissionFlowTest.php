@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\StaffRole;
+use App\Models\AmbulanceRequest;
 use App\Models\HospitalSubmission;
 use App\Models\StaffUser;
+use App\Models\Visit;
+use App\Services\Routing\HospitalRoutingService;
+use App\Support\DemoHospital;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +26,8 @@ class HospitalSubmissionFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Schema::dropIfExists('ambulance_requests');
+        Schema::dropIfExists('ambulance_vehicles');
 
         foreach (['hospital_submissions', 'consent_events', 'assessments', 'patient_medications', 'patient_allergies', 'patient_conditions', 'visits', 'hospitals', 'patients'] as $table) {
             Schema::dropIfExists($table);
@@ -142,6 +148,7 @@ class HospitalSubmissionFlowTest extends TestCase
             $table->timestamp('updated_at')->nullable();
         });
 
+        (require database_path('migrations/2026_11_25_000001_create_demo_dispatch.php'))->up();
         $this->seedCompletedVisit();
     }
 
@@ -311,6 +318,92 @@ class HospitalSubmissionFlowTest extends TestCase
             'visit_id' => self::VISIT_ID,
             'arrival_type' => 'WALK_IN_QR',
         ]);
+    }
+
+    public function test_patient_request_dispatch_assignment_and_tracking_are_connected(): void
+    {
+        $this->withSession($this->visitSession())->post(route('submission.store'), ['share_consent' => '1']);
+        $submission = HospitalSubmission::firstOrFail();
+        $this->post(route('submission.ambulance-request'));
+        $this->post(route('submission.ambulance-request'));
+        $this->assertDatabaseCount('ambulance_requests', 1);
+        $transport = AmbulanceRequest::firstOrFail();
+        $vehicleId = '90000000-0000-4000-8000-000000000001';
+        DB::table('ambulance_vehicles')->insert(['id' => $vehicleId, 'hospital_id' => self::HOSPITAL_ID, 'name' => 'Test ambulance', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->actingAs($this->staff())->get('/hospital/dispatch')
+            ->assertInertia(fn (Assert $page) => $page->component('hospital/Dispatch')->has('requests.data', 1));
+        $this->patch(route('dashboard.submissions.status', $submission), ['status' => 'ACKNOWLEDGED'])->assertSessionHasNoErrors();
+        $this->get('/medi/context')->assertJsonPath('submission.status', 'ACKNOWLEDGED');
+        $this->patch('/hospital/dispatch/'.$transport->id, ['status' => 'COMPLETED'])->assertSessionHasErrors('status');
+        $this->patch('/hospital/dispatch/'.$transport->id, ['status' => 'ASSIGNED', 'vehicle_id' => $vehicleId, 'crew' => 'Demo crew A', 'eta_minutes' => 12])->assertSessionHasNoErrors();
+        $this->get(route('submission.ambulance-demo'))->assertInertia(fn (Assert $page) => $page
+            ->where('ambulanceRequest.status', 'ASSIGNED')->where('ambulanceRequest.vehicle', 'Test ambulance')->where('ambulanceRequest.etaMinutes', 12));
+        foreach (['EN_ROUTE', 'AT_PATIENT', 'RETURNING', 'COMPLETED'] as $status) {
+            $this->patch('/hospital/dispatch/'.$transport->id, ['status' => $status])->assertSessionHasNoErrors();
+            $this->get('/medi/context')->assertJsonPath('transport.status', $status);
+        }
+        $this->assertCount(6, $transport->refresh()->events);
+        $this->get('/hospital/dispatch')->assertInertia(fn (Assert $page) => $page->where('vehicles.0.available', true));
+        $this->get(route('submission.complete'))->assertInertia(fn (Assert $page) => $page->where('transport.status', 'COMPLETED'));
+    }
+
+    public function test_dispatch_rejects_other_tenants_and_double_booking(): void
+    {
+        $this->withSession($this->visitSession())->post(route('submission.store'), ['share_consent' => '1']);
+        $this->post(route('submission.ambulance-request'));
+        $transport = AmbulanceRequest::firstOrFail();
+        $staff = $this->staff();
+        $staff->hospital_id = DemoHospital::ID;
+        $this->actingAs($staff)->patch('/hospital/dispatch/'.$transport->id, ['status' => 'CANCELLED'])->assertNotFound();
+        $this->get('/hospital/dispatch')->assertInertia(fn (Assert $page) => $page->has('requests.data', 0));
+        $this->actingAs($this->staff())->patch('/hospital/dispatch/'.$transport->id, [
+            'status' => 'ASSIGNED', 'vehicle_id' => 'de000000-0000-4000-8000-000000000011', 'crew' => 'Demo crew',
+        ])->assertSessionHasErrors('vehicle_id');
+
+        DB::table('ambulance_vehicles')->where('id', 'de000000-0000-4000-8000-000000000011')->update(['hospital_id' => self::HOSPITAL_ID]);
+        $this->patch('/hospital/dispatch/'.$transport->id, ['status' => 'ASSIGNED', 'vehicle_id' => 'de000000-0000-4000-8000-000000000011', 'crew' => 'Demo crew'])->assertSessionHasNoErrors();
+        $copy = HospitalSubmission::firstOrFail()->replicate();
+        $copy->visit_id = '20000000-0000-4000-8000-000000000002';
+        $copy->consent_event_id = '30000000-0000-4000-8000-000000000002';
+        $copy->save();
+        $other = AmbulanceRequest::create(['submission_id' => $copy->id, 'hospital_id' => self::HOSPITAL_ID, 'status' => 'REQUESTED', 'events' => []]);
+        $this->patch('/hospital/dispatch/'.$other->id, ['status' => 'ASSIGNED', 'vehicle_id' => 'de000000-0000-4000-8000-000000000011', 'crew' => 'Other crew'])->assertSessionHasErrors('vehicle_id');
+        $this->patch('/hospital/dispatch/'.$transport->id, ['status' => 'CANCELLED'])->assertSessionHasNoErrors();
+        $this->patch('/hospital/dispatch/'.$other->id, ['status' => 'ASSIGNED', 'vehicle_id' => 'de000000-0000-4000-8000-000000000011', 'crew' => 'Other crew'])->assertSessionHasNoErrors();
+    }
+
+    public function test_medi_does_not_reveal_a_case_from_an_untrusted_query_parameter(): void
+    {
+        $this->get('/medi/context?active_visit_reference='.self::VISIT_ID)
+            ->assertOk()->assertJsonPath('submission', null)->assertJsonPath('transport', null)->assertJsonPath('hasIntake', false);
+    }
+
+    public function test_super_admin_can_operate_only_the_fictional_demo_hospital(): void
+    {
+        $visit = Visit::findOrFail(self::VISIT_ID);
+        $routing = app(HospitalRoutingService::class);
+        $this->assertNotContains(DemoHospital::ID, array_column($routing->recommendations($visit), 'id'));
+        $this->get('/emergency')->assertInertia(fn (Assert $page) => $page
+            ->has('hospitals', 1)->where('hospitals.0.id', self::HOSPITAL_ID));
+        $visit->update(['preselected_hospital_id' => DemoHospital::ID]);
+        $this->assertSame([DemoHospital::ID], array_column($routing->recommendations($visit), 'id'));
+        $this->withSession($this->visitSession())->post(route('submission.store'), ['share_consent' => '1'])->assertSessionHasNoErrors();
+        $this->post(route('submission.ambulance-request'));
+        $staff = $this->staff();
+        $staff->role = StaffRole::SuperAdmin;
+        $staff->hospital_id = null;
+        $this->actingAs($staff)->get('/demo/hospital?status=ALL')->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')->where('hospital.name', 'MediPath Demo Hospital')->has('submissions.data', 1));
+        $submission = HospitalSubmission::firstOrFail();
+        $this->patch(route('dashboard.submissions.status', $submission), ['status' => 'ACKNOWLEDGED'])->assertSessionHasNoErrors();
+        $this->get('/medi/context')->assertJsonPath('submission.isDemo', true)->assertJsonPath('submission.status', 'ACKNOWLEDGED');
+        $this->get('/hospital/dispatch')->assertInertia(fn (Assert $page) => $page->has('requests.data', 1)->has('vehicles', 2));
+        $this->patch('/hospital/dispatch/'.AmbulanceRequest::firstOrFail()->id, [
+            'status' => 'ASSIGNED', 'vehicle_id' => 'de000000-0000-4000-8000-000000000011', 'crew' => 'Demo crew',
+        ])->assertSessionHasNoErrors();
+        $submission->update(['hospital_id' => self::HOSPITAL_ID]);
+        $this->patch(route('dashboard.submissions.status', $submission), ['status' => 'IN_TRIAGE'])->assertNotFound();
     }
 
     /** @return array<string, string> */

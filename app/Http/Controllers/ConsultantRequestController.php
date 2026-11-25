@@ -117,7 +117,7 @@ class ConsultantRequestController extends Controller
 
         $this->clearPendingRequest($request);
         $request->session()->regenerate();
-        $request->session()->flash('consultant_request_reference', $consultantRequest->getKey());
+        $request->session()->put('consultant_request_reference', $consultantRequest->getKey());
 
         return to_route('home', ['consult' => 'human']);
     }

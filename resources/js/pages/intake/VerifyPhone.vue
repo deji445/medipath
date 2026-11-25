@@ -68,7 +68,7 @@ onMounted(() => {
                             Verify your phone
                         </h1>
                         <p class="mt-1 text-sm text-teal-950/75">
-                            We sent a 6-digit code to {{ phoneNumber }}.
+                            Enter the 6-digit code for {{ phoneNumber }}.
                         </p>
                     </div>
                 </div>
@@ -109,8 +109,7 @@ onMounted(() => {
                         <strong class="font-mono text-base tracking-widest">{{
                             demoCode
                         }}</strong
-                        >. This is the same code sent to your phone. It is shown
-                        on screen only while MediPath is being tested.
+                        >. This code is displayed for prototype testing.
                     </p>
                 </div>
 

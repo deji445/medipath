@@ -6,6 +6,7 @@ use App\Enums\HospitalCapability;
 use App\Enums\SeverityLevel;
 use App\Models\Hospital;
 use App\Models\Visit;
+use App\Support\DemoHospital;
 
 final class HospitalRoutingService
 {
@@ -37,6 +38,13 @@ final class HospitalRoutingService
         }
 
         $recommendations = Hospital::query()
+            ->where(function ($query) use ($visit): void {
+                if ($visit->preselected_hospital_id !== DemoHospital::ID) {
+                    $query->where('id', '!=', DemoHospital::ID);
+                } else {
+                    $query->where('id', DemoHospital::ID);
+                }
+            })
             ->where('is_active', true)
             ->where('accepting_submissions', true)
             ->when(
@@ -122,6 +130,9 @@ final class HospitalRoutingService
         ?float $distance,
     ): array {
         $reasons = [];
+        if ($hospital->getKey() === DemoHospital::ID) {
+            return ['Fictional hospital for the connected MediPath demonstration', 'Staff can acknowledge intakes and manage simulated ambulance requests'];
+        }
 
         if ($hospital->capability === HospitalCapability::EmergencyCapable) {
             $reasons[] = $severity === SeverityLevel::High

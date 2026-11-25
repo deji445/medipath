@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Hospital;
-use App\Models\StaffUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,7 +31,7 @@ class WorkspaceEntryController extends Controller
             return to_route('hospital.login');
         }
 
-        abort_unless($staff instanceof StaffUser && $staff->is_active
+        abort_unless($staff->is_active
             && ! $staff->isSuperAdmin() && $staff->hospital_id === $hospital->getKey(), 403);
 
         return to_route('dashboard');

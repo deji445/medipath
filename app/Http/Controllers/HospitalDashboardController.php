@@ -6,6 +6,7 @@ use App\Enums\SeverityLevel;
 use App\Enums\SubmissionStatus;
 use App\Models\Hospital;
 use App\Models\HospitalSubmission;
+use App\Support\DemoHospital;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -18,10 +19,12 @@ class HospitalDashboardController extends Controller
     public function __invoke(Request $request, TenantContext $tenantContext): Response|RedirectResponse
     {
         if ($tenantContext->isSuperAdmin()) {
-            return to_route('platform.index');
+            if (! $request->routeIs('demo.admissions')) {
+                return to_route('platform.index');
+            }
         }
 
-        $hospitalId = $tenantContext->hospitalId();
+        $hospitalId = $tenantContext->isSuperAdmin() ? DemoHospital::ID : $tenantContext->hospitalId();
         abort_if($hospitalId === null, 403);
 
         $hospital = Hospital::query()->findOrFail($hospitalId);

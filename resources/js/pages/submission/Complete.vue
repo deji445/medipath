@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
     showJourney: boolean;
+    transport?: { status: string; vehicle: string | null } | null;
     submission: {
         reference: string;
         receivedAt?: string | null;
@@ -56,7 +57,7 @@ async function copyReference() {
 const referenceGroups = computed(() => props.submission.reference.split('-'));
 const { stop } = usePoll(
     30000,
-    { only: ['submission', 'hospital'] },
+    { only: ['submission', 'hospital', 'transport'] },
     { autoStart: props.submission.status !== 'CLOSED' },
 );
 
@@ -251,7 +252,7 @@ function dateTime(value?: string | null): string {
                 class="mt-7 flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:flex-wrap"
             >
                 <Form
-                    v-if="showJourney"
+                    v-if="showJourney && !transport"
                     action="/intake/submission/ambulance-request"
                     method="post"
                     v-slot="{ processing }"
@@ -272,6 +273,11 @@ function dateTime(value?: string | null): string {
                         />
                     </Button>
                 </Form>
+                <Button v-if="showJourney && transport" as-child size="lg"
+                    ><Link href="/intake/submission/ambulance-demo"
+                        >Track ambulance</Link
+                    ></Button
+                >
                 <Button
                     as-child
                     variant="outline"

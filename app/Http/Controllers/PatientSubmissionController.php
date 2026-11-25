@@ -8,6 +8,7 @@ use App\Enums\ConsentType;
 use App\Enums\SubmissionStatus;
 use App\Enums\VisitStatus;
 use App\Http\Requests\Submission\StoreHospitalSubmissionRequest;
+use App\Models\AmbulanceRequest;
 use App\Models\ConsentEvent;
 use App\Models\HospitalSubmission;
 use App\Models\Visit;
@@ -172,10 +173,13 @@ class PatientSubmissionController extends Controller
             return to_route('submission.review');
         }
 
-        $request->session()->put('demo_ambulance_request', [
-            'submission_reference' => $submission->getKey(),
-            'requested_at' => now()->toIso8601String(),
-        ]);
+        DB::transaction(function () use ($submission): void {
+            HospitalSubmission::whereKey($submission->id)->lockForUpdate()->firstOrFail();
+            AmbulanceRequest::firstOrCreate(['submission_id' => $submission->id], [
+                'hospital_id' => $submission->hospital_id, 'status' => 'REQUESTED',
+                'events' => [['status' => 'REQUESTED', 'at' => now()->toIso8601String()]],
+            ]);
+        });
 
         return to_route('submission.ambulance-demo');
     }
@@ -186,6 +190,7 @@ class PatientSubmissionController extends Controller
 
         return Inertia::render('submission/Complete', [
             'showJourney' => $showJourney,
+            'transport' => AmbulanceRequest::where('submission_id', $submission->id)->first()?->patientData(),
             'submission' => [
                 'reference' => $submission->getKey(),
                 'receivedAt' => $submission->received_at?->toIso8601String(),
@@ -213,12 +218,7 @@ class PatientSubmissionController extends Controller
         }
 
         $hospital = $submission->hospital;
-        $demoRequest = $request->session()->get('demo_ambulance_request');
-        $requestedAt = is_array($demoRequest)
-            && ($demoRequest['submission_reference'] ?? null) === $submission->getKey()
-            && is_string($demoRequest['requested_at'] ?? null)
-                ? $demoRequest['requested_at']
-                : null;
+        $transport = AmbulanceRequest::where('submission_id', $submission->id)->first();
 
         return Inertia::render('submission/AmbulanceDemo', [
             'submissionReference' => $submission->getKey(),
@@ -233,10 +233,7 @@ class PatientSubmissionController extends Controller
                 'label' => config('medipath.emergency.contact_label'),
                 'phone' => config('medipath.emergency.phone'),
             ],
-            'ambulanceRequest' => $requestedAt ? [
-                'requestedAt' => $requestedAt,
-                'status' => 'REQUESTED',
-            ] : null,
+            'ambulanceRequest' => $transport?->patientData(),
         ]);
     }
 

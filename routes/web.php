@@ -3,6 +3,7 @@
 use App\Http\Controllers\ConsultantChatController;
 use App\Http\Controllers\ConsultantRequestController;
 use App\Http\Controllers\ConsultantRequestQueueController;
+use App\Http\Controllers\DispatchController;
 use App\Http\Controllers\EmergencyHelpController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\HospitalDashboardController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\HospitalSettingsController;
 use App\Http\Controllers\HospitalStaffController;
 use App\Http\Controllers\HospitalSubmissionStatusController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\MediContextController;
 use App\Http\Controllers\PatientAssessmentController;
 use App\Http\Controllers\PatientIntakeController;
 use App\Http\Controllers\PatientRoutingController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\WorkspaceEntryController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('medi/context', MediContextController::class)->name('medi.context');
 Route::get('hospital/login', [WorkspaceEntryController::class, 'hospitalLogin'])->name('hospital.login');
 Route::get('platform/login', [WorkspaceEntryController::class, 'platformLogin'])->name('platform.login');
 Route::get('hospitals/{hospital:slug}', [WorkspaceEntryController::class, 'tenant'])->name('hospital.entry');
@@ -97,6 +100,9 @@ Route::prefix('intake/submission')->name('submission.')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'staff.tenant'])->group(function () {
+    Route::get('demo/hospital', HospitalDashboardController::class)->name('demo.admissions');
+    Route::get('hospital/dispatch', [DispatchController::class, 'index'])->name('dispatch.index');
+    Route::patch('hospital/dispatch/{ambulanceRequest}', [DispatchController::class, 'update'])->name('dispatch.update');
     Route::get('dashboard', HospitalDashboardController::class)->name('dashboard');
     Route::patch('dashboard/submissions/{submission}', HospitalSubmissionStatusController::class)
         ->name('dashboard.submissions.status');
