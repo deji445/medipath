@@ -15,6 +15,7 @@ use App\Models\Visit;
 use App\Services\Routing\AmbulanceDemoPlanner;
 use App\Services\Routing\HospitalRoutingService;
 use App\Services\Submission\HospitalSubmissionSnapshot;
+use App\Support\DemoHospital;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,7 @@ class PatientSubmissionController extends Controller
                 'name' => $hospital->brand_name ?: $hospital->name,
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
+                'isDemoHospital' => $hospital->getKey() === DemoHospital::ID,
                 'isLivePartner' => (bool) $hospital->is_live_partner,
             ],
             'patient' => [
@@ -202,6 +204,7 @@ class PatientSubmissionController extends Controller
                 'fullName' => $hospital->name,
                 'address' => $hospital->address,
                 'isLivePartner' => $submission->wasSentToPartner(),
+                'isDemoHospital' => $hospital->getKey() === DemoHospital::ID,
             ],
         ]);
     }

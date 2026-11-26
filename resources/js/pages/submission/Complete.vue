@@ -25,6 +25,7 @@ const props = defineProps<{
         fullName: string;
         address?: string | null;
         isLivePartner: boolean;
+        isDemoHospital: boolean;
     };
 }>();
 
@@ -103,6 +104,10 @@ function dateTime(value?: string | null): string {
                 <template v-if="hospital.isLivePartner">
                     The hospital admissions team can now review the patient’s
                     submitted information before arrival.
+                </template>
+                <template v-else-if="hospital.isDemoHospital">
+                    Your intake is in the demo admissions queue. Its status will
+                    update here when the demo team acknowledges it.
                 </template>
                 <template v-else>
                     This record is stored in MediPath for demonstration. It has

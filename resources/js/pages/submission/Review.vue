@@ -18,6 +18,7 @@ defineProps<{
         fullName: string;
         address?: string | null;
         isLivePartner: boolean;
+        isDemoHospital: boolean;
     };
     patient: { name: string; age: number };
     assessment: {
@@ -134,6 +135,9 @@ defineProps<{
                 <p class="max-w-2xl leading-6">
                     <template v-if="hospital.isLivePartner">
                         Only {{ hospital.name }} will receive this record.
+                    </template>
+                    <template v-else-if="hospital.isDemoHospital">
+                        Saving adds this intake to the demo admissions queue.
                     </template>
                     <template v-else>
                         This is a MediPath demo record. {{ hospital.name }} will
